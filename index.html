@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>ARC Developer Hub | by shumai1979</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f7f6; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: inline-block; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 8px; border: none; background: #27ad75; color: white; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>ARC Dev Interaction Hub</h1>
+        <p>Desenvolvedor: <strong>0x51D1...024</strong></p>
+        <p>Gitcoin Passport Score: <strong>31.9</strong></p>
+        <hr>
+        <button id="connectBtn">Conectar Rabby (Arc Testnet)</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const status = document.getElementById('status');
+
+        connectBtn.onclick = async () => {
+            if (window.ethereum) {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const network = await provider.getNetwork();
+                
+                if (network.chainId === 5042002) {
+                    status.innerText = "Conectado à ARC Testnet! Pronto para crédito de dev.";
+                    status.style.color = "green";
+                } else {
+                    status.innerText = "Muda a rede na Rabby para Arc Testnet (ID 5042002)";
+                    status.style.color = "red";
+                }
+            } else {
+                alert("Instala a Rabby Wallet!");
+            }
+        };
+    </script>
+</body>
+</html>
