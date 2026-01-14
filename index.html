@@ -3,95 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Dev Hub | shumai1979</title>
+    <title>ARC Developer Hub | shumai1979</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; background: #0f172a; color: white; }
-        .card { background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: inline-block; max-width: 450px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; font-size: 24px; }
-        .score-badge { background: #059669; color: white; padding: 8px 16px; border-radius: 50px; font-weight: bold; display: inline-block; margin-bottom: 20px; }
-        button { margin-top: 15px; padding: 16px 32px; font-size: 16px; cursor: pointer; border-radius: 12px; border: none; color: white; font-weight: bold; width: 100%; transition: 0.2s; }
-        .btn-connect { background: #3b82f6; }
-        .btn-interact { background: #8b5cf6; display: none; }
-        #status { margin-top: 25px; font-weight: bold; font-size: 13px; color: #fbbf24; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px; background: #020617; color: white; }
+        .card { background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: inline-block; max-width: 480px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; font-size: 26px; margin-bottom: 5px; }
+        .score-badge { background: #059669; color: white; padding: 8px 16px; border-radius: 50px; font-weight: bold; display: inline-block; margin-bottom: 20px; border: 2px solid #10b981; }
+        .dev-info { background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #94a3b8; }
+        button { padding: 18px 32px; font-size: 18px; cursor: pointer; border-radius: 12px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; transition: 0.3s; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5); }
+        button:hover { background: #2563eb; transform: translateY(-2px); }
+        #status { margin-top: 25px; font-weight: bold; font-size: 14px; min-height: 20px; }
     </style>
 </head>
 <body>
+
     <div class="card">
         <h1>ARC Interaction Hub</h1>
         <div class="score-badge">Gitcoin Passport: 31.9</div>
-        <p>Dev: <strong>0x51D1...9024</strong></p>
-        <button id="connectBtn" class="btn-connect">Conectar Carteira</button>
-        <button id="interactBtn" class="btn-interact">Enviar Sinal (ARC Testnet)</button>
-        <div id="status">Status: Aguardando...</div>
+        
+        <div class="dev-info">
+            DEPLOYER: 0x51D182a04a9F22FDf424Dc854cc6c7bE70259024<br>
+            NETWORK: ARC TESTNET (ID 5042002)
+        </div>
+
+        <button id="actionBtn">ATIVAR SINAL DEVELOPER</button>
+        <div id="status">Aguardando comando...</div>
     </div>
 
     <script>
-        const connectBtn = document.getElementById('connectBtn');
-        const interactBtn = document.getElementById('interactBtn');
+        const actionBtn = document.getElementById('actionBtn');
         const statusDiv = document.getElementById('status');
-        let userAccount = "";
+        const ARC_HEX_ID = '0x4ce942'; // 5042002
 
-        const ARC_CHAIN_ID = '0x4ce942'; // Hex de 5042002
+        actionBtn.onclick = async () => {
+            if (!window.ethereum) return alert("Rabby não detetada!");
 
-        async function connect() {
-            if (window.ethereum) {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    userAccount = accounts[0];
-                    statusDiv.innerText = "Conectado: " + userAccount.substring(0,10) + "...";
-                    connectBtn.style.display = 'none';
-                    interactBtn.style.display = 'block';
-                } catch (err) { statusDiv.innerText = "Erro ao conectar."; }
-            }
-        }
-
-        async function ensureNetwork() {
             try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: ARC_CHAIN_ID }],
-                });
-            } catch (switchError) {
-                // Se a rede não existir na carteira, tenta adicioná-la
-                if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: ARC_CHAIN_ID,
-                            chainName: 'Arc Testnet',
-                            nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-                            rpcUrls: ['https://rpc.testnet.arc.network'],
-                            blockExplorerUrls: ['https://testnet.arcscan.app']
-                        }]
-                    });
-                } else { throw switchError; }
-            }
-        }
-
-        async function sendSignal() {
-            try {
-                await ensureNetwork();
+                statusDiv.style.color = "#fbbf24";
+                statusDiv.innerText = "1. Solicitando acesso...";
                 
-                const txParams = {
-                    from: userAccount,
-                    to: userAccount,
-                    value: '0x0',
-                    gas: '0x5208',
-                    chainId: ARC_CHAIN_ID
-                };
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const wallet = accounts[0];
 
-                statusDiv.innerText = "A chamar a carteira para o sinal...";
-                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [txParams] });
+                statusDiv.innerText = "2. Mudando para rede ARC...";
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: ARC_HEX_ID }],
+                    });
+                } catch (e) {
+                    // Se a rede não estiver na Rabby, este código tenta adicionar
+                    if (e.code === 4902) {
+                        statusDiv.innerText = "Adicionando rede ARC à Rabby...";
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: ARC_HEX_ID,
+                                chainName: 'Arc Testnet',
+                                nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+                                rpcUrls: ['https://rpc.testnet.arc.network'],
+                                blockExplorerUrls: ['https://testnet.arcscan.app']
+                            }]
+                        });
+                    }
+                }
+
+                statusDiv.innerText = "3. Enviando sinal de Builder...";
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: wallet,
+                        to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024',
+                        value: '0x0',
+                        gas: '0x5208', // 21000
+                        chainId: ARC_HEX_ID
+                    }]
+                });
+
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "Sinal enviado! Hash: " + txHash.substring(0,15);
-            } catch (err) {
-                statusDiv.style.color = "#f87171";
-                statusDiv.innerText = "Erro: Verifique se tem USDC para gas.";
-            }
-        }
+                statusDiv.innerText = "SUCESSO! Sinal registado na ARC.";
+                actionBtn.innerText = "SINAL ENVIADO ✅";
+                console.log("TX Hash:", txHash);
 
-        connectBtn.onclick = connect;
-        interactBtn.onclick = sendSignal;
+            } catch (err) {
+                console.error(err);
+                statusDiv.style.color = "#f87171";
+                statusDiv.innerText = "Erro: " + (err.message || "Falha na transação.");
+            }
+        };
     </script>
 </body>
 </html>
