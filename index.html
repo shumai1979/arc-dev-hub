@@ -33,67 +33,42 @@
     <script>
         const actionBtn = document.getElementById('actionBtn');
         const statusDiv = document.getElementById('status');
-        const ARC_HEX_ID = '0x4ce942'; // 5042002 em Hex
 
         actionBtn.onclick = async () => {
             if (!window.ethereum) return alert("Rabby não detetada!");
 
             try {
                 statusDiv.style.color = "#fbbf24";
-                statusDiv.innerText = "Sincronizando com a Rabby...";
+                statusDiv.innerText = "Sincronizando com a rede ARC...";
 
-                // 1. Pedir conta
+                // Solicita as contas
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const wallet = accounts[0];
 
-                // 2. Verificar a rede atual
-                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                // Envia a transação SEM forçar um chainId no código.
+                // Isso obriga a Rabby a usar a rede que você já selecionou manualmente
+                statusDiv.innerText = "A abrir transação na Rabby...";
                 
-                if (currentChainId !== ARC_HEX_ID) {
-                    statusDiv.innerText = "Mude para a Arc Testnet na Rabby...";
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: ARC_HEX_ID }],
-                        });
-                    } catch (err) {
-                        // Se a rede não estiver adicionada, adiciona agora
-                        if (err.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: ARC_HEX_ID,
-                                    chainName: 'Arc Testnet',
-                                    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-                                    rpcUrls: ['https://rpc.testnet.arc.network'],
-                                    blockExplorerUrls: ['https://testnet.arcscan.app']
-                                }]
-                            });
-                        }
-                    }
-                    return; // Interrompe para o user confirmar a mudança na carteira
-                }
-
-                // 3. Se já estiver na rede certa, enviar a transação
-                statusDiv.innerText = "Rede correta! Enviando sinal...";
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: wallet,
                         to: wallet,
                         value: '0x0',
-                        gas: '0x5208' // 21000 gas units
+                        gas: '0x5208' // 21000 unidades de gas
                     }]
                 });
 
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "SUCESSO! Sinal enviado.";
+                statusDiv.innerText = "SUCESSO! Sinal enviado com sucesso.";
                 actionBtn.innerText = "SINAL ENVIADO ✅";
+                actionBtn.style.background = "#059669";
 
             } catch (err) {
                 console.error(err);
                 statusDiv.style.color = "#f87171";
-                statusDiv.innerText = "Erro: " + (err.message.includes("User rejected") ? "Rejeitado" : "Verifique o saldo de USDC");
+                // Tratamento simplificado para evitar o erro de mismatch
+                statusDiv.innerText = "Erro: Certifique-se que a Rabby está na Arc Testnet e tem USDC.";
             }
         };
     </script>
