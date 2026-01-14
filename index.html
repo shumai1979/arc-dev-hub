@@ -33,54 +33,50 @@
     <script>
         const actionBtn = document.getElementById('actionBtn');
         const statusDiv = document.getElementById('status');
-        const ARC_HEX_ID = '0x4ce942'; // 5042002
-
-        async function setupNetwork() {
-            try {
-                // Tenta mudar a rede primeiro
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: ARC_HEX_ID }],
-                });
-            } catch (error) {
-                // Se a rede não existir (erro 4902), adiciona-a
-                if (error.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: ARC_HEX_ID,
-                            chainName: 'Arc Testnet',
-                            nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
-                            rpcUrls: ['https://rpc.testnet.arc.network'],
-                            blockExplorerUrls: ['https://testnet.arcscan.app']
-                        }],
-                    });
-                } else {
-                    throw error;
-                }
-            }
-        }
+        const ARC_HEX_ID = '0x4ce942';
 
         actionBtn.onclick = async () => {
             if (!window.ethereum) return alert("Rabby Wallet não encontrada!");
 
             try {
                 statusDiv.style.color = "#fbbf24";
-                statusDiv.innerText = "A validar ligação...";
-
+                statusDiv.innerText = "1. Conectando carteira...";
+                
+                // Força o pop-up de seleção da Rabby
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const wallet = accounts[0];
 
-                // Passo crucial: Garantir a rede ARC antes da transação
-                await setupNetwork();
+                statusDiv.innerText = "2. Verificando Rede ARC...";
+                
+                // Tenta forçar a troca para a rede ARC antes de qualquer coisa
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: ARC_HEX_ID }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        statusDiv.innerText = "Adicionando Rede ARC...";
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: ARC_HEX_ID,
+                                chainName: 'Arc Testnet',
+                                nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+                                rpcUrls: ['https://rpc.testnet.arc.network'],
+                                blockExplorerUrls: ['https://testnet.arcscan.app']
+                            }]
+                        });
+                    }
+                }
 
-                statusDiv.innerText = "Rede ARC confirmada! Assine o sinal...";
+                statusDiv.innerText = "3. Enviando Sinal (Confirme na Rabby)...";
                 
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: wallet,
-                        to: wallet, // Envia para ti próprio
+                        to: wallet,
                         value: '0x0',
                         gas: '0x5208',
                         chainId: ARC_HEX_ID
@@ -88,17 +84,17 @@
                 });
 
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "SINAL REGISTADO COM SUCESSO!";
+                statusDiv.innerText = "SUCESSO! Sinal registado na ARC.";
                 actionBtn.innerText = "SINAL ENVIADO ✅";
-                actionBtn.style.background = "#059669";
 
             } catch (err) {
                 console.error(err);
                 statusDiv.style.color = "#f87171";
-                if (err.code === 4001) {
-                    statusDiv.innerText = "Erro: Rejeitou a assinatura.";
+                // Se der erro de ChainID, avisamos o user para trocar manualmente
+                if (err.message.includes("chainId")) {
+                    statusDiv.innerText = "Troque manualmente para ARC na Rabby e tente de novo.";
                 } else {
-                    statusDiv.innerText = "Erro: Certifique-se que tem USDC para o Gas.";
+                    statusDiv.innerText = "Erro: " + (err.message.includes("User rejected") ? "Rejeitado" : "Verifique o USDC Gas");
                 }
             }
         };
