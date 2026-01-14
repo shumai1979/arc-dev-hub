@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>ARC Developer Hub - 0x51D1...</h1>
+    <p>Conecta a tua carteira e interage com o meu contrato na ARC Testnet para ganharmos crédito!</p>
+    
+    <button id="connectBtn">Conectar Carteira</button>
+    <button id="interactBtn" style="display:none;">Interagir (Gas em USDC)</button>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script>
+        const contractAddress = "TEU_CONTRATO_DEPLOYED_AQUI";
+        const abi = ["function interact() public"];
+
+        async function init() {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            document.getElementById('interactBtn').style.display = 'block';
+
+            document.getElementById('interactBtn').onclick = async () => {
+                const contract = new ethers.Contract(contractAddress, abi, signer);
+                const tx = await contract.interact();
+                alert("Transação enviada! Hash: " + tx.hash);
+            };
+        }
+        document.getElementById('connectBtn').onclick = init;
+    </script>
+</body>
+</html>
