@@ -41,33 +41,30 @@
                 statusDiv.style.color = "#fbbf24";
                 statusDiv.innerText = "Sincronizando com a rede ARC...";
 
-                // Solicita as contas
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const wallet = accounts[0];
 
-                // Envia a transação SEM forçar um chainId no código.
-                // Isso obriga a Rabby a usar a rede que você já selecionou manualmente
-                statusDiv.innerText = "A abrir transação na Rabby...";
+                statusDiv.innerText = "A abrir transação de sinal...";
                 
+                // Agora o sinal é enviado para o endereço de Deployer especificado
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: wallet,
-                        to: wallet,
+                        to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', 
                         value: '0x0',
-                        gas: '0x5208' // 21000 unidades de gas
+                        gas: '0x5208' 
                     }]
                 });
 
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "SUCESSO! Sinal enviado com sucesso.";
+                statusDiv.innerText = "SUCESSO! Sinal enviado ao Deployer.";
                 actionBtn.innerText = "SINAL ENVIADO ✅";
                 actionBtn.style.background = "#059669";
 
             } catch (err) {
                 console.error(err);
                 statusDiv.style.color = "#f87171";
-                // Tratamento simplificado para evitar o erro de mismatch
                 statusDiv.innerText = "Erro: Certifique-se que a Rabby está na Arc Testnet e tem USDC.";
             }
         };
