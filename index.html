@@ -34,27 +34,49 @@
 
         async function connect() {
             if (window.ethereum) {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAccount = accounts[0];
-                statusDiv.innerText = "Conectado: " + userAccount.substring(0,10) + "...";
-                connectBtn.style.display = 'none';
-                interactBtn.style.display = 'block';
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    userAccount = accounts[0];
+                    statusDiv.innerText = "Conectado: " + userAccount.substring(0,10) + "...";
+                    connectBtn.style.display = 'none';
+                    interactBtn.style.display = 'block';
+                } catch (err) {
+                    statusDiv.innerText = "Erro ao conectar.";
+                }
             }
         }
 
         async function sendSignal() {
+            // Parâmetros corrigidos para a Arc Testnet (ID: 5042002)
             const txParams = {
                 from: userAccount,
-                to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', // Envia para ti próprio como teste
-                value: '0x0', // 0 ETH/USDC
-                chainId: '0x4ce942' // ARC Testnet ID 5042002
+                to: userAccount, // Envia para si próprio
+                value: '0x0',
+                gas: '0x5208', // 21000 gas
+                chainId: '0x4ce942' // Hex de 5042002
             };
+            
             try {
-                statusDiv.innerText = "A aguardar confirmação na Rabby...";
-                await window.ethereum.request({ method: 'eth_sendTransaction', params: [txParams] });
-                statusDiv.innerText = "Sinal enviado com sucesso para a ARC!";
+                statusDiv.style.color = "#fbbf24";
+                statusDiv.innerText = "A abrir a Rabby... Confirme a transação.";
+                
+                // Força a mudança de rede antes da transação
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x4ce942' }],
+                });
+
+                const txHash = await window.ethereum.request({ 
+                    method: 'eth_sendTransaction', 
+                    params: [txParams] 
+                });
+                
+                statusDiv.style.color = "#10b981";
+                statusDiv.innerText = "Sinal enviado! Hash: " + txHash.substring(0,15) + "...";
             } catch (err) {
-                statusDiv.innerText = "Erro ou rejeitado.";
+                console.error(err);
+                statusDiv.style.color = "#f87171";
+                statusDiv.innerText = "Erro: " + (err.message.includes("User denied") ? "Rejeitado na carteira" : "Verifique o gas (USDC)");
             }
         }
 
