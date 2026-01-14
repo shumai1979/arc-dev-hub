@@ -12,7 +12,7 @@
         button { margin-top: 15px; padding: 16px 32px; font-size: 16px; cursor: pointer; border-radius: 12px; border: none; color: white; font-weight: bold; width: 100%; transition: 0.2s; }
         .btn-connect { background: #3b82f6; }
         .btn-interact { background: #8b5cf6; display: none; }
-        #status { margin-top: 25px; font-weight: bold; font-size: 13px; color: #10b981; }
+        #status { margin-top: 25px; font-weight: bold; font-size: 13px; color: #fbbf24; }
     </style>
 </head>
 <body>
@@ -22,15 +22,16 @@
         <p>Dev: <strong>0x51D1...9024</strong></p>
         <button id="connectBtn" class="btn-connect">Conectar Carteira</button>
         <button id="interactBtn" class="btn-interact">Enviar Sinal (ARC Testnet)</button>
-        <div id="status"></div>
+        <div id="status">Status: Aguardando...</div>
     </div>
 
     <script>
         const connectBtn = document.getElementById('connectBtn');
         const interactBtn = document.getElementById('interactBtn');
         const statusDiv = document.getElementById('status');
-
         let userAccount = "";
+
+        const ARC_CHAIN_ID = '0x4ce942'; // Hex de 5042002
 
         async function connect() {
             if (window.ethereum) {
@@ -40,43 +41,52 @@
                     statusDiv.innerText = "Conectado: " + userAccount.substring(0,10) + "...";
                     connectBtn.style.display = 'none';
                     interactBtn.style.display = 'block';
-                } catch (err) {
-                    statusDiv.innerText = "Erro ao conectar.";
-                }
+                } catch (err) { statusDiv.innerText = "Erro ao conectar."; }
+            }
+        }
+
+        async function ensureNetwork() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: ARC_CHAIN_ID }],
+                });
+            } catch (switchError) {
+                // Se a rede não existir na carteira, tenta adicioná-la
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: ARC_CHAIN_ID,
+                            chainName: 'Arc Testnet',
+                            nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+                            rpcUrls: ['https://rpc.testnet.arc.network'],
+                            blockExplorerUrls: ['https://testnet.arcscan.app']
+                        }]
+                    });
+                } else { throw switchError; }
             }
         }
 
         async function sendSignal() {
-            // Parâmetros corrigidos para a Arc Testnet (ID: 5042002)
-            const txParams = {
-                from: userAccount,
-                to: userAccount, // Envia para si próprio
-                value: '0x0',
-                gas: '0x5208', // 21000 gas
-                chainId: '0x4ce942' // Hex de 5042002
-            };
-            
             try {
-                statusDiv.style.color = "#fbbf24";
-                statusDiv.innerText = "A abrir a Rabby... Confirme a transação.";
+                await ensureNetwork();
                 
-                // Força a mudança de rede antes da transação
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x4ce942' }],
-                });
+                const txParams = {
+                    from: userAccount,
+                    to: userAccount,
+                    value: '0x0',
+                    gas: '0x5208',
+                    chainId: ARC_CHAIN_ID
+                };
 
-                const txHash = await window.ethereum.request({ 
-                    method: 'eth_sendTransaction', 
-                    params: [txParams] 
-                });
-                
+                statusDiv.innerText = "A chamar a carteira para o sinal...";
+                const txHash = await window.ethereum.request({ method: 'eth_sendTransaction', params: [txParams] });
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "Sinal enviado! Hash: " + txHash.substring(0,15) + "...";
+                statusDiv.innerText = "Sinal enviado! Hash: " + txHash.substring(0,15);
             } catch (err) {
-                console.error(err);
                 statusDiv.style.color = "#f87171";
-                statusDiv.innerText = "Erro: " + (err.message.includes("User denied") ? "Rejeitado na carteira" : "Verifique o gas (USDC)");
+                statusDiv.innerText = "Erro: Verifique se tem USDC para gas.";
             }
         }
 
