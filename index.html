@@ -3,68 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Dev Hub | 0x51D1...024</title>
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <title>ARC Dev Hub | shumai1979</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 50px; background: #0f172a; color: white; }
-        .card { background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: inline-block; max-width: 400px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-bottom: 10px; }
-        p { color: #94a3b8; font-size: 0.9em; }
-        .score-badge { background: #059669; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; display: inline-block; margin-top: 10px; }
-        button { margin-top: 25px; padding: 15px 30px; font-size: 16px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; transition: 0.3s; width: 100%; }
-        button:hover { background: #2563eb; transform: translateY(-2px); }
-        #status { margin-top: 20px; font-weight: bold; font-size: 0.8em; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: #0f172a; 
+            color: white; 
+        }
+        .card { 
+            background: #1e293b; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            display: inline-block; 
+            max-width: 450px; 
+            border: 1px solid #334155; 
+        }
+        h1 { color: #38bdf8; margin-bottom: 10px; font-size: 24px; }
+        p { color: #94a3b8; font-size: 14px; margin: 10px 0; }
+        .score-badge { 
+            background: #059669; 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            display: inline-block; 
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        button { 
+            margin-top: 20px; 
+            padding: 16px 32px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-radius: 12px; 
+            border: none; 
+            background: #3b82f6; 
+            color: white; 
+            font-weight: bold; 
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        button:hover { background: #2563eb; transform: scale(1.02); }
+        #status { 
+            margin-top: 25px; 
+            font-weight: bold; 
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
+
     <div class="card">
         <h1>ARC Interaction Hub</h1>
-        <p>Developer: <strong>0x51D1...024</strong></p>
-        <div class="score-badge">Gitcoin Score: 31.9</div>
-        <p style="margin-top:20px;">Rede: Arc Testnet (USDC Gas)</p>
+        <div class="score-badge">Gitcoin Passport: 31.9</div>
+        <p>Developer: <strong>0x51D182a04a9F22FDf424Dc854cc6c7bE70259024</strong></p>
+        <p>Network: <strong>Arc Testnet (ID: 5042002)</strong></p>
         
         <button id="connectBtn">Conectar Carteira</button>
-        <p id="status"></p>
+        <div id="status">Status: Aguardando interação...</div>
     </div>
 
     <script>
         const connectBtn = document.getElementById('connectBtn');
-        const status = document.getElementById('status');
+        const statusDiv = document.getElementById('status');
 
-        async function connect() {
+        async function connectWallet() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
-                    status.innerText = "A chamar a carteira...";
-                    // Pedido explícito de contas que "acorda" a Rabby/MetaMask
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const account = accounts[0];
-                    
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    const { chainId } = await provider.getNetwork();
+                    statusDiv.innerText = "A chamar a carteira... Por favor, verifique o pop-up.";
+                    statusDiv.style.color = "#fbbf24";
 
-                    if (chainId === 5042002) {
-                        status.innerText = "Conectado: " + account.substring(0,6) + "..." + account.substring(38);
-                        status.style.color = "#10b981";
-                        connectBtn.innerText = "Carteira Ativa";
-                    } else {
-                        status.innerText = "Erro: Muda para a Arc Testnet na tua carteira.";
-                        status.style.color = "#f43f5e";
-                        // Tentar mudar a rede automaticamente
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x4ce942' }], // 5042002 em Hex
-                        });
-                    }
+                    // O comando principal que acorda a Rabby/MetaMask
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                    
+                    const wallet = accounts[0];
+                    statusDiv.innerText = "Sucesso! Conectado a: " + wallet.substring(0,6) + "..." + wallet.substring(38);
+                    statusDiv.style.color = "#10b981";
+                    connectBtn.innerText = "Carteira Conectada";
+
                 } catch (error) {
-                    console.error(error);
-                    status.innerText = "Conexão rejeitada ou erro técnico.";
+                    console.error("Erro na conexão:", error);
+                    if (error.code === 4001) {
+                        statusDiv.innerText = "Erro: Conexão rejeitada pelo utilizador.";
+                    } else {
+                        statusDiv.innerText = "Erro ao conectar. Verifique se a Rabby está ativa.";
+                    }
+                    statusDiv.style.color = "#f87171";
                 }
             } else {
-                status.innerText = "Carteira não detetada. Instala a Rabby ou MetaMask.";
+                statusDiv.innerText = "Carteira não detetada. Instale a Rabby ou MetaMask.";
+                statusDiv.style.color = "#f87171";
             }
         }
 
-        connectBtn.addEventListener('click', connect);
-    </script>
-</body>
-</html>
+        connectBtn.addEventListener('click', connectWallet);
