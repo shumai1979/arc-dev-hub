@@ -1,178 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Developer Hub | Shumai1979</title>
+// Configurações e Estado
+let totalXP = 0;
+const signalValue = 10;
+const walletAddress = "0x51D182a04a9F22FDf424Dc854cc6c7bE70259024";
+
+// Função para formatar a data (opcional, para dar um toque profissional)
+function getTimestamp() {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+// Função Principal de Envio de Sinal
+async function sendSignal() {
+    const statusElement = document.getElementById('status-message');
+    const xpElement = document.getElementById('total-xp');
+    const btn = document.querySelector('.btn-signal');
+
+    try {
+        // Feedback visual de carregamento
+        btn.disabled = true;
+        btn.innerText = "SENDING...";
+        statusElement.innerText = "Processing on ARC Testnet...";
+
+        // Simulação de transação (Aqui podes integrar com a MetaMask no futuro)
+        // Por agora, geramos um hash fictício para o link de SCAN
+        const mockHash = "0x" + Math.random().toString(16).slice(2, 42);
+
+        // Atualizar XP
+        totalXP += signalValue;
+        xpElement.innerText = totalXP;
+
+        // Adicionar ao Log com limite de 3
+        updateActivityLog(mockHash);
+
+        // Sucesso
+        statusElement.innerText = "Signal sent successfully!";
+        statusElement.style.color = "#00f3ff";
+
+    } catch (error) {
+        statusElement.innerText = "Error sending signal. Try again.";
+        statusElement.style.color = "#ff4b4b";
+    } finally {
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerText = "SEND SIGNAL";
+        }, 1000);
+    }
+}
+
+// Função para atualizar o Log e manter apenas os 3 mais recentes
+function updateActivityLog(hash) {
+    const logList = document.getElementById('activity-log');
     
-    <meta property="og:title" content="ARC Interaction Hub - Shumai1979">
-    <meta property="og:image" content="https://shumai1979.github.io/arc-dev-hub/preview.jpg">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://shumai1979.github.io/arc-dev-hub/preview.jpg">
+    // Criar o novo item da lista
+    const newEntry = document.createElement('li');
+    // Usamos o timestamp para o utilizador saber qual é o mais recente
+    newEntry.innerHTML = `Signal Sent <span>[${getTimestamp()}]</span> <a href="https://explorer.arc.io/tx/${hash}" target="_blank">SCAN</a>`;
+    
+    // Adicionar no topo da lista
+    logList.insertBefore(newEntry, logList.firstChild);
 
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 40px 20px; 
-            background-color: #020617; /* Fundo sólido para evitar ecrã preto */
-            color: white; 
-            margin: 0;
-        }
+    // LÓGICA DE LIMITE: Remove o sinal mais antigo se houver mais de 3
+    while (logList.children.length > 3) {
+        logList.removeChild(logList.lastChild);
+    }
+}
 
-        .card { 
-            background-color: #0f172a; 
-            padding: 30px; 
-            border-radius: 20px; 
-            display: inline-block; 
-            max-width: 400px; 
-            border: 2px solid #38bdf8;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-            margin-top: 20px;
-        }
-
-        h1 { color: #38bdf8; font-size: 24px; }
-
-        .badge-container { margin: 20px 0; }
-        
-        .status-badge { 
-            background: #10b981; 
-            padding: 5px 12px; 
-            border-radius: 8px; 
-            font-size: 10px; 
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .xp-badge { 
-            background: #7c3aed; 
-            padding: 5px 12px; 
-            border-radius: 8px; 
-            font-size: 10px; 
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 10px;
-        }
-
-        .dev-info { 
-            background: #020617; 
-            padding: 10px; 
-            border-radius: 8px; 
-            font-family: monospace; 
-            font-size: 10px; 
-            color: #94a3b8; 
-            text-align: left;
-            margin-bottom: 20px;
-        }
-
-        .main-btn { 
-            padding: 15px; 
-            font-size: 16px; 
-            cursor: pointer; 
-            border-radius: 10px; 
-            border: none; 
-            background: #3b82f6; 
-            color: white; 
-            font-weight: bold; 
-            width: 100%; 
-            margin-bottom: 10px;
-        }
-
-        .faucet-btn { 
-            padding: 10px; 
-            font-size: 12px; 
-            border-radius: 8px; 
-            border: 1px solid #334155; 
-            background: transparent; 
-            color: #94a3b8; 
-            width: 100%; 
-            display: block; 
-            text-decoration: none;
-            margin-bottom: 15px;
-        }
-
-        .share-link { color: #38bdf8; text-decoration: none; font-size: 12px; }
-
-        #status { margin-top: 20px; font-size: 13px; color: #64748b; }
-
-        .history { margin-top: 30px; text-align: left; border-top: 1px solid #1e293b; padding-top: 20px; }
-        .tx-item { background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
-        .scan-link { color: #38bdf8; text-decoration: none; font-weight: bold; }
-    </style>
-</head>
-<body>
-
-    <div class="card">
-        <h1>ARC Interaction Hub</h1>
-        
-        <div class="badge-container">
-            <div class="status-badge">NETWORK: ACTIVE</div>
-            <div class="xp-badge">TOTAL XP: <span id="xpCount">0</span></div>
-        </div>
-        
-        <div class="dev-info">
-            DEPLOYER: 0x51D182a04a9F22FDf424Dc854cc6c7bE70259024<br>
-            ECOSYSTEM: ARC TESTNET (ID 5042002)
-        </div>
-
-        <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL</button>
-        <a href="https://easyfaucetarc.xyz/" target="_blank" class="faucet-btn">GET GAS TOKENS (EASY FAUCET) ↗</a>
-        <a id="shareBtn" href="#" target="_blank" class="share-link">Share my progress on X</a>
-
-        <div id="status">Waiting for command...</div>
-
-        <div class="history" id="historySection" style="display: none;">
-            <h3 style="font-size: 11px; color: #475569;">ACTIVITY LOG</h3>
-            <div id="txList"></div>
-        </div>
-    </div>
-
-    <script>
-        const xpCountLabel = document.getElementById('xpCount');
-        const txList = document.getElementById('txList');
-        const historySection = document.getElementById('historySection');
-        const shareBtn = document.getElementById('shareBtn');
-        const statusDiv = document.getElementById('status');
-
-        let points = parseInt(localStorage.getItem('devXP')) || 0;
-        let savedHistory = JSON.parse(localStorage.getItem('devHistory')) || [];
-
-        function updateUI() {
-            xpCountLabel.innerText = points;
-            if (savedHistory.length > 0) {
-                historySection.style.display = "block";
-                txList.innerHTML = savedHistory.map(tx => `
-                    <div class="tx-item">
-                        <span>Signal #${tx.id}</span>
-                        <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" class="scan-link">SCAN ↗</a>
-                    </div>
-                `).join('');
-            }
-            const text = encodeURIComponent(`Building on @ARCFoundation! I have ${points} XP.`);
-            shareBtn.href = `https://twitter.com/intent/tweet?text=${text}&url=https://shumai1979.github.io/arc-dev-hub/`;
-        }
-
-        updateUI();
-
-        document.getElementById('actionBtn').onclick = async () => {
-            if (!window.ethereum) return alert("Wallet not found!");
-            try {
-                statusDiv.innerText = "Connecting...";
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{ from: accounts[0], to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', value: '0x0' }]
-                });
-                points += 10;
-                localStorage.setItem('devXP', points);
-                savedHistory.unshift({ id: savedHistory.length + 1, hash: txHash });
-                localStorage.setItem('devHistory', JSON.stringify(savedHistory));
-                updateUI();
-                statusDiv.innerText = "Signal Sent!";
-            } catch (err) {
-                statusDiv.innerText = "Error occurred.";
-            }
-        };
-    </script>
-</body>
-</html>
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("ARC Interaction Hub Ready");
+});
