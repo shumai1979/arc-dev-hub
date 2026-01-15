@@ -6,21 +6,23 @@
     <title>ARC Developer Hub | Shumai1979</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #020617; color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background-color: #0f172a; padding: 30px; border-radius: 20px; display: inline-block; max-width: 400px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
-        h1 { color: #38bdf8; font-size: 24px; }
-        .badge-container { margin: 20px 0; }
-        .status-badge { background: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; display: inline-block; }
-        .xp-badge { background: #7c3aed; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; display: inline-block; margin-left: 10px; }
-        .dev-info { background: #020617; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #94a3b8; text-align: left; margin-bottom: 20px; }
-        .main-btn { padding: 15px; font-size: 16px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 10px; }
-        .mint-btn { padding: 15px; font-size: 16px; cursor: pointer; border-radius: 10px; border: 2px solid #fbbf24; background: transparent; color: #fbbf24; font-weight: bold; width: 100%; margin-bottom: 15px; opacity: 0.4; }
+        .card { background-color: #0f172a; padding: 30px; border-radius: 20px; display: inline-block; width: 100%; max-width: 400px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
+        h1 { color: #38bdf8; font-size: 24px; margin-bottom: 20px; }
+        .badge-container { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
+        .status-badge { background: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+        .xp-badge { background: #7c3aed; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+        .dev-info { background: #020617; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 10px; color: #94a3b8; text-align: left; margin-bottom: 20px; line-height: 1.4; }
+        .main-btn { padding: 15px; font-size: 16px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 10px; transition: 0.3s; }
+        .main-btn:hover { background: #2563eb; }
+        .mint-btn { padding: 15px; font-size: 16px; cursor: pointer; border-radius: 10px; border: 2px solid #fbbf24; background: transparent; color: #fbbf24; font-weight: bold; width: 100%; margin-bottom: 15px; opacity: 0.4; transition: 0.3s; }
         .mint-btn.active { opacity: 1; background: rgba(251, 191, 36, 0.1); }
         .faucet-btn { padding: 10px; font-size: 12px; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #94a3b8; width: 100%; display: block; text-decoration: none; margin-bottom: 15px; }
-        #status { margin-top: 20px; font-size: 13px; color: #64748b; }
-        .history { margin-top: 30px; text-align: left; border-top: 1px solid #1e293b; padding-top: 20px; }
-        .tx-item { background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
-        #nftDisplay { display: none; margin-top: 20px; }
-        .nft-image { width: 100px; border-radius: 10px; border: 1px solid #fbbf24; }
+        #status { margin-top: 15px; font-size: 13px; color: #64748b; height: 18px; }
+        .history { margin-top: 25px; text-align: left; border-top: 1px solid #1e293b; padding-top: 15px; }
+        .tx-item { background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        #nftDisplay { display: none; margin: 20px 0; animation: fadeIn 0.8s ease-in; }
+        .nft-image { width: 120px; height: 120px; border-radius: 15px; border: 2px solid #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -36,26 +38,37 @@
         </div>
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL</button>
         <button id="mintBtn" class="mint-btn">MINT NFT (200 XP REQ)</button>
-        <div id="nftDisplay"><img src="https://i.ibb.co/L6S9zFh/arc-tester-nft.png" class="nft-image"><br>NFT MINTED!</div>
+        
+        <div id="nftDisplay">
+            <img src="https://img.freepik.com/premium-photo/futuristic-shield-badge-symbol-innovation-security-digital-technology-concept_1218631-50790.jpg" class="nft-image">
+            <div style="color: #fbbf24; font-weight: bold; margin-top: 10px; font-size: 12px;">NFT MINTED!</div>
+        </div>
+
         <a href="https://easyfaucetarc.xyz/" target="_blank" class="faucet-btn">GET GAS TOKENS (EASY FAUCET) ↗</a>
         <div id="status">Waiting for command...</div>
-        <div class="history"><div id="txList"></div></div>
+        <div class="history">
+            <div id="txList"></div>
+        </div>
     </div>
 
     <script>
-        // LÓGICA SIMPLES E SEGURA
         let points = 130;
-        let history = [];
+        let historyData = [];
 
         function updateUI() {
             document.getElementById('xpCount').innerText = points;
-            const btn = document.getElementById('mintBtn');
-            if(points >= 200) { btn.classList.add('active'); btn.style.opacity = "1"; }
+            const mBtn = document.getElementById('mintBtn');
+            if(points >= 200) { 
+                mBtn.classList.add('active'); 
+                mBtn.innerText = "MINT HUB TESTER NFT";
+            }
             
             const list = document.getElementById('txList');
-            list.innerHTML = history.slice(0, 3).map(tx => `
-                <div class="tx-item"><span>Signal #${tx.id}</span>
-                <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">SCAN ↗</a></div>
+            list.innerHTML = historyData.slice(0, 3).map(tx => `
+                <div class="tx-item">
+                    <span>Signal #${tx.id}</span>
+                    <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8; text-decoration:none;">SCAN ↗</a>
+                </div>
             `).join('');
         }
 
@@ -68,22 +81,27 @@
                         params: [{ from: accounts[0], to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', value: '0x0' }]
                     });
                     points += 10;
-                    history.unshift({ id: history.length + 1, hash: txHash });
+                    historyData.unshift({ id: historyData.length + 1, hash: txHash });
                     updateUI();
                     document.getElementById('status').innerText = "Signal Sent!";
-                } catch (e) { document.getElementById('status').innerText = "Cancelled."; }
-            } else { alert("MetaMask not found!"); }
+                } catch (e) { document.getElementById('status').innerText = "Transaction failed."; }
+            } else { alert("Please install MetaMask!"); }
         };
 
         document.getElementById('mintBtn').onclick = async () => {
             if(points < 200) return;
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [{ from: accounts[0], to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', value: '0x0' }]
-            });
-            document.getElementById('nftDisplay').style.display = "block";
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{ from: accounts[0], to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', value: '0x0' }]
+                });
+                document.getElementById('nftDisplay').style.display = "block";
+                document.getElementById('status').innerText = "NFT Minted!";
+            } catch (e) { document.getElementById('status').innerText = "Mint cancelled."; }
         };
+
+        updateUI();
     </script>
 </body>
 </html>
