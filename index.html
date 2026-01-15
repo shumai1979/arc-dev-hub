@@ -1,71 +1,194 @@
-// Configurações e Estado
-let totalXP = 0;
-const signalValue = 10;
-const walletAddress = "0x51D182a04a9F22FDf424Dc854cc6c7bE70259024";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARC Interaction Hub - Shumai1979</title>
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --dark-bg: #0a0a0a;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+        }
 
-// Função para formatar a data (opcional, para dar um toque profissional)
-function getTimestamp() {
-    const now = new Date();
-    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
 
-// Função Principal de Envio de Sinal
-async function sendSignal() {
-    const statusElement = document.getElementById('status-message');
-    const xpElement = document.getElementById('total-xp');
-    const btn = document.querySelector('.btn-signal');
+        .hub-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+            text-align: center;
+        }
 
-    try {
-        // Feedback visual de carregamento
-        btn.disabled = true;
-        btn.innerText = "SENDING...";
-        statusElement.innerText = "Processing on ARC Testnet...";
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
 
-        // Simulação de transação (Aqui podes integrar com a MetaMask no futuro)
-        // Por agora, geramos um hash fictício para o link de SCAN
-        const mockHash = "0x" + Math.random().toString(16).slice(2, 42);
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
 
-        // Atualizar XP
-        totalXP += signalValue;
-        xpElement.innerText = totalXP;
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 3px solid var(--neon-cyan);
+        }
 
-        // Adicionar ao Log com limite de 3
-        updateActivityLog(mockHash);
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
 
-        // Sucesso
-        statusElement.innerText = "Signal sent successfully!";
-        statusElement.style.color = "#00f3ff";
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+        }
 
-    } catch (error) {
-        statusElement.innerText = "Error sending signal. Try again.";
-        statusElement.style.color = "#ff4b4b";
-    } finally {
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.innerText = "SEND SIGNAL";
-        }, 1000);
-    }
-}
+        .btn-signal {
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 15px 30px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            letter-spacing: 1px;
+        }
 
-// Função para atualizar o Log e manter apenas os 3 mais recentes
-function updateActivityLog(hash) {
-    const logList = document.getElementById('activity-log');
-    
-    // Criar o novo item da lista
-    const newEntry = document.createElement('li');
-    // Usamos o timestamp para o utilizador saber qual é o mais recente
-    newEntry.innerHTML = `Signal Sent <span>[${getTimestamp()}]</span> <a href="https://explorer.arc.io/tx/${hash}" target="_blank">SCAN</a>`;
-    
-    // Adicionar no topo da lista
-    logList.insertBefore(newEntry, logList.firstChild);
+        .btn-signal:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
 
-    // LÓGICA DE LIMITE: Remove o sinal mais antigo se houver mais de 3
-    while (logList.children.length > 3) {
-        logList.removeChild(logList.lastChild);
-    }
-}
+        .btn-signal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("ARC Interaction Hub Ready");
-});
+        #activity-log {
+            margin-top: 30px;
+            padding: 0;
+            list-style: none;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        #activity-log li {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        #activity-log a {
+            color: var(--neon-cyan);
+            text-decoration: none;
+            font-size: 0.7rem;
+            border: 1px solid var(--neon-cyan);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        #status-message {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            height: 20px;
+            color: #888;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hub-container">
+        <h1>ARC INTERACTION HUB</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Builder XP</div>
+                <div class="stat-value" id="total-xp">130</div>
+            </div>
+        </div>
+
+        <button class="btn-signal" onclick="sendSignal()">SEND SIGNAL</button>
+        <div id="status-message">Ready to broadcast to Testnet</div>
+
+        <ul id="activity-log">
+            </ul>
+        <div style="font-size: 0.7rem; color: #444; margin-top: 10px;">Showing last 3 interactions</div>
+    </div>
+
+    <script>
+        let totalXP = 130; // Mantendo o teu XP atual
+        const signalValue = 10;
+
+        async function sendSignal() {
+            const btn = document.querySelector('.btn-signal');
+            const status = document.getElementById('status-message');
+            const xpDisplay = document.getElementById('total-xp');
+
+            btn.disabled = true;
+            status.innerText = "Transmitting to ARC...";
+
+            // Simulação de delay de rede
+            setTimeout(() => {
+                totalXP += signalValue;
+                xpDisplay.innerText = totalXP;
+                
+                const mockHash = "0x" + Math.random().toString(16).slice(2, 10) + "...";
+                updateLog(mockHash);
+
+                status.innerText = "Signal confirmed on-chain!";
+                btn.disabled = false;
+            }, 800);
+        }
+
+        function updateLog(hash) {
+            const log = document.getElementById('activity-log');
+            const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const li = document.createElement('li');
+            li.innerHTML = `<span>Signal [${now}]</span> <a href="#">SCAN: ${hash}</a>`;
+            
+            log.insertBefore(li, log.firstChild);
+
+            // Limitar a 3 sinais
+            while (log.children.length > 3) {
+                log.removeChild(log.lastChild);
+            }
+        }
+    </script>
+</body>
+</html>
