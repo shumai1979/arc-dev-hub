@@ -5,151 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <title>ARC Developer Hub | Shumai1979</title>
-    <meta name="description" content="Track your ARC Testnet progress, gain XP, and access essential developer tools.">
     
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://shumai1979.github.io/arc-dev-hub/">
     <meta property="og:title" content="ARC Interaction Hub - Shumai1979">
-    <meta property="og:description" content="Check my XP and active signals on the ARC Network.">
     <meta property="og:image" content="https://shumai1979.github.io/arc-dev-hub/preview.jpg">
-
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@Shumai1979">
-    <meta name="twitter:title" content="ARC Interaction Hub">
-    <meta name="twitter:description" content="My live on-chain progress on ARC Testnet. Tracking signals and XP.">
     <meta name="twitter:image" content="https://shumai1979.github.io/arc-dev-hub/preview.jpg">
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 40px 20px; background: #020617; color: white; }
-        .card { background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: inline-block; max-width: 480px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; font-size: 26px; margin-bottom: 5px; }
-        .badge-container { margin-bottom: 20px; }
-        .status-badge { background: #059669; color: white; padding: 8px 16px; border-radius: 50px; font-weight: bold; display: inline-block; border: 2px solid #10b981; font-size: 11px; }
-        .xp-badge { background: #7c3aed; color: white; padding: 8px 16px; border-radius: 50px; font-weight: bold; display: inline-block; border: 2px solid #8b5cf6; margin-left: 10px; font-size: 11px; }
-        .dev-info { background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-family: monospace; font-size: 11px; color: #94a3b8; line-height: 1.5; text-align: left; }
-        
-        /* BUTTONS */
-        .main-btn { padding: 18px 32px; font-size: 18px; cursor: pointer; border-radius: 12px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; transition: 0.3s; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5); margin-bottom: 15px; }
-        .main-btn:hover { background: #2563eb; transform: translateY(-2px); }
-        .faucet-btn { padding: 12px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px solid #475569; background: transparent; color: #94a3b8; width: 100%; transition: 0.3s; text-decoration: none; display: block; font-weight: 500; margin-bottom: 15px; }
-        .faucet-btn:hover { background: #334155; color: #38bdf8; border-color: #38bdf8; }
-        
-        .share-link { color: #38bdf8; text-decoration: none; font-size: 12px; font-weight: bold; border-bottom: 1px dashed #38bdf8; padding-bottom: 2px; transition: 0.3s; }
-        .share-link:hover { color: #7dd3fc; border-color: #7dd3fc; }
-
-        #status { margin-top: 25px; font-weight: bold; font-size: 14px; min-height: 20px; }
-        
-        /* HISTORY LOG */
-        .history { margin-top: 30px; text-align: left; border-top: 1px solid #334155; padding-top: 20px; }
-        .history h3 { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .tx-item { background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #38bdf8; }
-        .tx-item a { color: #38bdf8; text-decoration: none; font-weight: bold; }
-        
-        /* FOOTER */
-        .dev-footer { margin-top: 30px; font-size: 12px; color: #64748b; }
-        .dev-footer a { color: #94a3b8; text-decoration: none; margin: 0 10px; transition: 0.3s; }
-        .dev-footer a:hover { color: #38bdf8; }
-    </style>
-</head>
-<body>
-
-    <div class="card">
-        <h1>ARC Interaction Hub</h1>
-        <div class="badge-container">
-            <div class="status-badge">NETWORK: ACTIVE</div>
-            <div class="xp-badge">TOTAL XP: <span id="xpCount">0</span></div>
-        </div>
-        
-        <div class="dev-info">
-            DEPLOYER: 0x51D182a04a9F22FDf424Dc854cc6c7bE70259024<br>
-            ECOSYSTEM: ARC TESTNET (ID 5042002)
-        </div>
-
-        <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL</button>
-        <a href="https://easyfaucetarc.xyz/" target="_blank" class="faucet-btn">GET GAS TOKENS (EASY FAUCET) ↗</a>
-        
-        <a id="shareBtn" href="#" target="_blank" class="share-link">Share my progress on X</a>
-
-        <div id="status">Waiting for command...</div>
-
-        <div class="history" id="historySection" style="display: none;">
-            <h3>Activity Log (<span id="txCount">0</span> Signals)</h3>
-            <div id="txList"></div>
-        </div>
-
-        <div class="dev-footer">
-            Developed by shumai1979 • 
-            <a href="https://x.com/Shumai1979" target="_blank">Twitter (X)</a> • 
-            <a href="https://github.com/shumai1979" target="_blank">GitHub</a>
-        </div>
-    </div>
-
-    <script>
-        const actionBtn = document.getElementById('actionBtn');
-        const statusDiv = document.getElementById('status');
-        const xpCountLabel = document.getElementById('xpCount');
-        const txCountLabel = document.getElementById('txCount');
-        const txList = document.getElementById('txList');
-        const historySection = document.getElementById('historySection');
-        const shareBtn = document.getElementById('shareBtn');
-
-        let points = parseInt(localStorage.getItem('devXP')) || 0;
-        let savedHistory = JSON.parse(localStorage.getItem('devHistory')) || [];
-
-        function updateUI() {
-            xpCountLabel.innerText = points;
-            txCountLabel.innerText = savedHistory.length;
-            if (savedHistory.length > 0) {
-                historySection.style.display = "block";
-                txList.innerHTML = savedHistory.map(tx => `
-                    <div class="tx-item">
-                        <span>Signal #${tx.id} (+10 XP)</span>
-                        <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank">VIEW ON SCAN ↗</a>
-                    </div>
-                `).join('');
-            }
-            
-            // ATUALIZA O LINK DE PARTILHA COM O XP ATUAL
-            const tweetText = encodeURIComponent(`Building on @ARCFoundation! 🏗️\n\nI've reached ${points} XP on my Developer Interaction Hub. Check my on-chain progress:`);
-            const tweetUrl = encodeURIComponent("https://shumai1979.github.io/arc-dev-hub/");
-            shareBtn.href = `https://twitter.com/intent/tweet?text=${tweetText}&url=${tweetUrl}`;
+        :root {
+            --primary: #38bdf8;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --bg: #020617;
+            --card-bg: #0f172a;
         }
 
-        updateUI();
+        body { 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            text-align: center; 
+            padding: 40px 20px; 
+            background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); 
+            color: white; 
+            min-height: 100vh;
+            margin: 0;
+        }
 
-        actionBtn.onclick = async () => {
-            if (!window.ethereum) return alert("Wallet not detected!");
-            try {
-                statusDiv.style.color = "#fbbf24";
-                statusDiv.innerText = "Connecting to ARC Network...";
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                statusDiv.innerText = "Sending Signal...";
-                const txHash = await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{ 
-                        from: accounts[0], 
-                        to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', 
-                        value: '0x0', 
-                        gas: '0x5208' 
-                    }]
-                });
+        /* O CARD COM O EFEITO DA IMAGEM */
+        .card { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 30px; 
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.15); 
+            display: inline-block; 
+            max-width: 450px; 
+            border: 2px solid rgba(56, 189, 248, 0.3);
+            position: relative;
+        }
 
-                statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "SUCCESS! Signal Broadcasted.";
-                
-                // ATUALIZA XP E HISTÓRICO
-                points += 10;
-                localStorage.setItem('devXP', points);
-                savedHistory.unshift({ id: savedHistory.length + 1, hash: txHash });
-                localStorage.setItem('devHistory', JSON.stringify(savedHistory));
-                
-                updateUI();
+        h1 { color: var(--primary); font-size: 28px; margin-bottom: 15px; letter-spacing: -0.5px; }
 
-                setTimeout(() => {
-                    statusDiv.innerText = "Waiting for command...";
-                    statusDiv.style.color = "white";
-                }, 4000);
+        .badge-container { margin-bottom: 25px; display: flex; justify-content: center; gap: 10px; }
+        
+        .status-badge { 
+            background: var(--success); 
+            padding: 8px 16px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            font-weight: 800;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
 
-            } catch (err) {
-                statusDiv.style.color = "#f87
+        .xp-badge { 
+            background:
