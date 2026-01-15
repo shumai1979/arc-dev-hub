@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>ARC Developer Hub | Shumai1979</title>
     
     <meta property="og:title" content="ARC Interaction Hub - Shumai1979">
@@ -12,48 +11,168 @@
     <meta name="twitter:image" content="https://shumai1979.github.io/arc-dev-hub/preview.jpg">
 
     <style>
-        :root {
-            --primary: #38bdf8;
-            --secondary: #7c3aed;
-            --success: #10b981;
-            --bg: #020617;
-            --card-bg: #0f172a;
-        }
-
         body { 
-            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            font-family: Arial, sans-serif; 
             text-align: center; 
             padding: 40px 20px; 
-            background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); 
+            background-color: #020617; /* Fundo sólido para evitar ecrã preto */
             color: white; 
-            min-height: 100vh;
             margin: 0;
         }
 
-        /* O CARD COM O EFEITO DA IMAGEM */
         .card { 
-            background: var(--card-bg); 
-            padding: 40px; 
-            border-radius: 30px; 
-            box-shadow: 0 0 40px rgba(56, 189, 248, 0.15); 
+            background-color: #0f172a; 
+            padding: 30px; 
+            border-radius: 20px; 
             display: inline-block; 
-            max-width: 450px; 
-            border: 2px solid rgba(56, 189, 248, 0.3);
-            position: relative;
+            max-width: 400px; 
+            border: 2px solid #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+            margin-top: 20px;
         }
 
-        h1 { color: var(--primary); font-size: 28px; margin-bottom: 15px; letter-spacing: -0.5px; }
+        h1 { color: #38bdf8; font-size: 24px; }
 
-        .badge-container { margin-bottom: 25px; display: flex; justify-content: center; gap: 10px; }
+        .badge-container { margin: 20px 0; }
         
         .status-badge { 
-            background: var(--success); 
-            padding: 8px 16px; 
-            border-radius: 12px; 
-            font-size: 11px; 
-            font-weight: 800;
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+            background: #10b981; 
+            padding: 5px 12px; 
+            border-radius: 8px; 
+            font-size: 10px; 
+            font-weight: bold;
+            display: inline-block;
         }
 
         .xp-badge { 
-            background:
+            background: #7c3aed; 
+            padding: 5px 12px; 
+            border-radius: 8px; 
+            font-size: 10px; 
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .dev-info { 
+            background: #020617; 
+            padding: 10px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            font-size: 10px; 
+            color: #94a3b8; 
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .main-btn { 
+            padding: 15px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border-radius: 10px; 
+            border: none; 
+            background: #3b82f6; 
+            color: white; 
+            font-weight: bold; 
+            width: 100%; 
+            margin-bottom: 10px;
+        }
+
+        .faucet-btn { 
+            padding: 10px; 
+            font-size: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+            background: transparent; 
+            color: #94a3b8; 
+            width: 100%; 
+            display: block; 
+            text-decoration: none;
+            margin-bottom: 15px;
+        }
+
+        .share-link { color: #38bdf8; text-decoration: none; font-size: 12px; }
+
+        #status { margin-top: 20px; font-size: 13px; color: #64748b; }
+
+        .history { margin-top: 30px; text-align: left; border-top: 1px solid #1e293b; padding-top: 20px; }
+        .tx-item { background: #1e293b; padding: 10px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        .scan-link { color: #38bdf8; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>ARC Interaction Hub</h1>
+        
+        <div class="badge-container">
+            <div class="status-badge">NETWORK: ACTIVE</div>
+            <div class="xp-badge">TOTAL XP: <span id="xpCount">0</span></div>
+        </div>
+        
+        <div class="dev-info">
+            DEPLOYER: 0x51D182a04a9F22FDf424Dc854cc6c7bE70259024<br>
+            ECOSYSTEM: ARC TESTNET (ID 5042002)
+        </div>
+
+        <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL</button>
+        <a href="https://easyfaucetarc.xyz/" target="_blank" class="faucet-btn">GET GAS TOKENS (EASY FAUCET) ↗</a>
+        <a id="shareBtn" href="#" target="_blank" class="share-link">Share my progress on X</a>
+
+        <div id="status">Waiting for command...</div>
+
+        <div class="history" id="historySection" style="display: none;">
+            <h3 style="font-size: 11px; color: #475569;">ACTIVITY LOG</h3>
+            <div id="txList"></div>
+        </div>
+    </div>
+
+    <script>
+        const xpCountLabel = document.getElementById('xpCount');
+        const txList = document.getElementById('txList');
+        const historySection = document.getElementById('historySection');
+        const shareBtn = document.getElementById('shareBtn');
+        const statusDiv = document.getElementById('status');
+
+        let points = parseInt(localStorage.getItem('devXP')) || 0;
+        let savedHistory = JSON.parse(localStorage.getItem('devHistory')) || [];
+
+        function updateUI() {
+            xpCountLabel.innerText = points;
+            if (savedHistory.length > 0) {
+                historySection.style.display = "block";
+                txList.innerHTML = savedHistory.map(tx => `
+                    <div class="tx-item">
+                        <span>Signal #${tx.id}</span>
+                        <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" class="scan-link">SCAN ↗</a>
+                    </div>
+                `).join('');
+            }
+            const text = encodeURIComponent(`Building on @ARCFoundation! I have ${points} XP.`);
+            shareBtn.href = `https://twitter.com/intent/tweet?text=${text}&url=https://shumai1979.github.io/arc-dev-hub/`;
+        }
+
+        updateUI();
+
+        document.getElementById('actionBtn').onclick = async () => {
+            if (!window.ethereum) return alert("Wallet not found!");
+            try {
+                statusDiv.innerText = "Connecting...";
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{ from: accounts[0], to: '0x51D182a04a9F22FDf424Dc854cc6c7bE70259024', value: '0x0' }]
+                });
+                points += 10;
+                localStorage.setItem('devXP', points);
+                savedHistory.unshift({ id: savedHistory.length + 1, hash: txHash });
+                localStorage.setItem('devHistory', JSON.stringify(savedHistory));
+                updateUI();
+                statusDiv.innerText = "Signal Sent!";
+            } catch (err) {
+                statusDiv.innerText = "Error occurred.";
+            }
+        };
+    </script>
+</body>
+</html>
