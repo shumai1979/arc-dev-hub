@@ -14,11 +14,11 @@
         .dev-info { background: #0f172a; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-family: monospace; font-size: 11px; color: #94a3b8; line-height: 1.5; text-align: left; }
         .main-btn { padding: 18px 32px; font-size: 18px; cursor: pointer; border-radius: 12px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; transition: 0.3s; box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.5); margin-bottom: 15px; }
         .main-btn:hover { background: #2563eb; transform: translateY(-2px); }
-        .faucet-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: 1px solid #475569; background: transparent; color: #94a3b8; width: 100%; transition: 0.3s; text-decoration: none; display: block; }
-        .faucet-btn:hover { background: #334155; color: white; }
+        .faucet-btn { padding: 12px; font-size: 13px; cursor: pointer; border-radius: 10px; border: 1px solid #475569; background: transparent; color: #94a3b8; width: 100%; transition: 0.3s; text-decoration: none; display: block; font-weight: 500; }
+        .faucet-btn:hover { background: #334155; color: #38bdf8; border-color: #38bdf8; }
         #status { margin-top: 25px; font-weight: bold; font-size: 14px; min-height: 20px; }
         .history { margin-top: 30px; text-align: left; border-top: 1px solid #334155; padding-top: 20px; }
-        .history h3 { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .history h3 { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .tx-item { background: #0f172a; padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #38bdf8; }
         .tx-item a { color: #38bdf8; text-decoration: none; font-weight: bold; }
     </style>
@@ -38,7 +38,7 @@
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL</button>
-        <a href="https://faucet.arcscan.app/" target="_blank" class="faucet-btn">GET TESTNET TOKENS (FAUCET) ↗</a>
+        <a href="https://easyfaucetarc.xyz/" target="_blank" class="faucet-btn">GET GAS TOKENS (EASY FAUCET) ↗</a>
 
         <div id="status">Waiting for command...</div>
 
@@ -56,11 +56,11 @@
         const txList = document.getElementById('txList');
         const historySection = document.getElementById('historySection');
 
-        // --- STORAGE LOGIC ---
+        // --- ENHANCED PERSISTENCE ---
         let points = parseInt(localStorage.getItem('devXP')) || 0;
         let savedHistory = JSON.parse(localStorage.getItem('devHistory')) || [];
 
-        function updateUI() {
+        function renderUI() {
             xpCountLabel.innerText = points;
             txCountLabel.innerText = savedHistory.length;
             if (savedHistory.length > 0) {
@@ -74,19 +74,19 @@
             }
         }
 
-        updateUI();
+        renderUI();
 
         actionBtn.onclick = async () => {
             if (!window.ethereum) return alert("Rabby Wallet not detected!");
 
             try {
                 statusDiv.style.color = "#fbbf24";
-                statusDiv.innerText = "Syncing with ARC Network...";
+                statusDiv.innerText = "Connecting to ARC Network...";
 
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const wallet = accounts[0];
 
-                statusDiv.innerText = "Requesting Signal Transaction...";
+                statusDiv.innerText = "Broadcasting Signal...";
                 
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
@@ -99,10 +99,11 @@
                 });
 
                 statusDiv.style.color = "#10b981";
-                statusDiv.innerText = "SUCCESS! Signal sent to Deployer.";
+                statusDiv.innerText = "SUCCESS! Signal reached the Deployer.";
                 actionBtn.innerText = "SIGNAL SENT ✅";
                 actionBtn.style.background = "#059669";
                 
+                // Update Storage
                 points += 10;
                 localStorage.setItem('devXP', points);
 
@@ -110,7 +111,7 @@
                 savedHistory.unshift(newTx);
                 localStorage.setItem('devHistory', JSON.stringify(savedHistory));
 
-                updateUI();
+                renderUI();
 
                 setTimeout(() => {
                     actionBtn.innerText = "SEND NEW SIGNAL";
@@ -120,7 +121,7 @@
             } catch (err) {
                 console.error(err);
                 statusDiv.style.color = "#f87171";
-                statusDiv.innerText = "Error: Transaction rejected or failed.";
+                statusDiv.innerText = "Error: Interaction rejected.";
             }
         };
     </script>
