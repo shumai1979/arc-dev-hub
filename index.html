@@ -6,7 +6,7 @@
     <title>ARC Developer Hub | Shumai1979</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #020617; color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background-color: #0f172a; padding: 25px; border-radius: 20px; display: inline-block; width: 100%; max-width: 420px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
+        .card { background-color: #0f172a; padding: 25px; border-radius: 20px; display: inline-block; width: 100%; max-width: 400px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
         h1 { color: #38bdf8; font-size: 22px; margin-bottom: 15px; }
         .badge-container { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; }
         .status-badge { background: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
@@ -27,9 +27,8 @@
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; height: 14px; }
         .history { margin-top: 15px; text-align: left; border-top: 1px solid #1e293b; padding-top: 10px; }
         .tx-item { background: #1e293b; padding: 8px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
-        #nftDisplay { display: none; margin: 15px 0; animation: fadeIn 0.5s; }
+        #nftDisplay { display: none; margin: 15px 0; }
         .nft-image { width: 100px; height: 100px; border-radius: 12px; border: 2px solid #fbbf24; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -41,18 +40,18 @@
         </div>
 
         <div class="swap-box">
-            <span style="font-size: 9px; color: #94a3b8;">DE (Gas Token)</span>
+            <span style="font-size: 9px; color: #94a3b8;">DE (USDC)</span>
             <div class="swap-input-group">
                 <input type="number" id="swapAmount" class="swap-input" placeholder="0.0">
                 <span class="token-tag">USDC</span>
             </div>
             <div style="text-align:center; color:#38bdf8; font-size:12px;">⇅</div>
-            <span style="font-size: 9px; color: #94a3b8;">PARA</span>
+            <span style="font-size: 9px; color: #94a3b8;">PARA (EURC)</span>
             <div class="swap-input-group">
                 <input type="number" id="swapResult" class="swap-input" readonly placeholder="0.0">
                 <span class="token-tag">EURC</span>
             </div>
-            <button id="swapBtn" class="main-btn swap-btn">EXECUTE REAL SWAP</button>
+            <button id="swapBtn" class="main-btn swap-btn">EXECUTE TOKEN SWAP</button>
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
@@ -73,9 +72,9 @@
         let points = 130;
         let historyData = [];
 
-        // Lógica visual do swap
+        // Atualiza o valor visual do swap (1 por 1)
         document.getElementById('swapAmount').oninput = (e) => {
-            document.getElementById('swapResult').value = (e.target.value * 1.0).toFixed(2);
+            document.getElementById('swapResult').value = e.target.value;
         };
 
         function updateUI() {
@@ -83,8 +82,8 @@
             const mBtn = document.getElementById('mintBtn');
             if(points >= 200) { 
                 mBtn.classList.add('active'); 
-                mBtn.innerText = "MINT HUB TESTER NFT";
                 mBtn.style.opacity = "1";
+                mBtn.innerText = "MINT HUB TESTER NFT";
             }
             document.getElementById('txList').innerHTML = historyData.slice(0, 3).map(tx => `
                 <div class="tx-item">
@@ -94,57 +93,66 @@
             `).join('');
         }
 
-        // FUNÇÃO GENÉRICA DE TRANSAÇÃO (Recuperada)
-        async function runTx(type, xp, value = '0x0') {
-            if (!window.ethereum) return alert("Install MetaMask!");
+        // Função para processar transações
+        async function runTransaction(type, xpBonus, ethValue = '0x0') {
+            if (!window.ethereum) return alert("Please install MetaMask!");
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 document.getElementById('status').innerText = "Confirm in MetaMask...";
                 
                 const txHash = await window.ethereum.request({
                     method: 'eth_sendTransaction',
-                    params: [{ from: accounts[0], to: DEPLOYER, value: value }]
+                    params: [{
+                        from: accounts[0],
+                        to: DEPLOYER,
+                        value: ethValue
+                    }]
                 });
 
-                points += xp;
+                points += xpBonus;
                 historyData.unshift({ type: type, hash: txHash });
                 updateUI();
                 document.getElementById('status').innerText = type + " successful!";
                 return true;
-            } catch (e) { 
-                document.getElementById('status').innerText = "Transaction failed."; 
+            } catch (e) {
+                document.getElementById('status').innerText = "Transaction failed.";
                 return false;
             }
         }
 
-        // Botão de Sinal (Recuperado)
-        document.getElementById('actionBtn').onclick = () => runTx("Signal", 10);
+        // Evento Botão de Sinal
+        document.getElementById('actionBtn').onclick = () => runTransaction("Signal", 10);
 
-        // Botão de Swap (Novo + Importação de Token)
+        // Evento Botão de Swap
         document.getElementById('swapBtn').onclick = async () => {
-            const val = document.getElementById('swapAmount').value;
-            if(!val || val <= 0) return alert("Enter amount");
-            
-            const valHex = "0x" + (BigInt(val * 10**18)).toString(16);
-            const success = await runTx("Swap USDC/EURC", 20, valHex);
-            
-            if(success) {
-                // Sugere adicionar o token EURC à carteira
+            const amount = document.getElementById('swapAmount').value;
+            if (!amount || amount <= 0) return alert("Enter amount");
+
+            const valueHex = "0x" + (BigInt(amount * 10**18)).toString(16);
+            const success = await runTransaction("Swap USDC/EURC", 20, valueHex);
+
+            if (success) {
+                // Sugere adicionar o EURC à carteira
                 await window.ethereum.request({
                     method: 'wallet_watchAsset',
                     params: {
                         type: 'ERC20',
-                        options: { address: EURC_CONTRACT, symbol: 'EURC', decimals: 18 }
-                    }
+                        options: {
+                            address: EURC_CONTRACT,
+                            symbol: 'EURC',
+                            decimals: 18,
+                            image: 'https://cryptologos.cc/logos/euro-coin-eurc-logo.png',
+                        },
+                    },
                 });
             }
         };
 
-        // Botão de Mint (Recuperado)
+        // Evento Botão de Mint
         document.getElementById('mintBtn').onclick = async () => {
-            if(points < 200) return;
-            const success = await runTx("NFT Mint", 0);
-            if(success) document.getElementById('nftDisplay').style.display = "block";
+            if (points < 200) return;
+            const success = await runTransaction("NFT Mint", 0);
+            if (success) document.getElementById('nftDisplay').style.display = "block";
         };
 
         updateUI();
