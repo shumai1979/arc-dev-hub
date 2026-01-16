@@ -33,7 +33,7 @@
         <h1>ARC Interaction Hub</h1>
         <div class="badge-container">
             <div class="status-badge">NETWORK: ARC TESTNET</div>
-            <div class="xp-badge">TOTAL XP: <span id="xpCount">200</span></div>
+            <div class="xp-badge">TOTAL XP: <span id="xpCount">0</span></div>
         </div>
 
         <button id="connectBtn" class="main-btn">CONNECT WALLET</button>
@@ -70,7 +70,16 @@
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
         const ABI = ["function approve(address s, uint256 a) public returns (bool)", "function exchange(int128 i, int128 j, uint256 dx, uint256 min) external returns (uint256)", "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)", "function balanceOf(address a) public view returns (uint256)"];
 
-        let points = 200, isReversed = false, walletAddress = "";
+        let points = 0;
+        let walletAddress = "";
+        let isReversed = false;
+
+        function updateXP(amount) {
+            points += amount;
+            localStorage.setItem('arc_xp_' + walletAddress, points);
+            document.getElementById('xpCount').innerText = points;
+            if (points >= 200) document.getElementById('nftSection').style.display = 'block';
+        }
 
         async function updateBalances() {
             if (!window.ethereum || !walletAddress) return;
@@ -79,28 +88,34 @@
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, provider);
                 const eurc = new ethers.Contract(EURC_ADDR, ABI, provider);
                 
-                // Pedidos sequenciais para não sobrecarregar o nó da Testnet
-                const bUSDC = await usdc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
-                const bEURC = await eurc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
+                // Tentativa de leitura forçada de USDC
+                const bUSDC = await usdc.balanceOf(walletAddress);
+                const bEURC = await eurc.balanceOf(walletAddress);
 
-                const valU = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
-                const valE = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
+                const fUSDC = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
+                const fEURC = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
 
-                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? valE : valU} ${isReversed ? 'EURC' : 'USDC'}`;
-                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? valU : valE} ${isReversed ? 'USDC' : 'EURC'}`;
-                
-                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
-            } catch (e) { console.log("Sync..."); }
+                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
+                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
+            } catch (e) { console.log("Lendo saldos..."); }
         }
 
         document.getElementById('connectBtn').onclick = async () => {
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 walletAddress = accounts[0];
+                
+                // Carregar XP da memória do navegador para esta carteira específica
+                const savedXP = localStorage.getItem('arc_xp_' + walletAddress);
+                points = savedXP ? parseInt(savedXP) : 0;
+                document.getElementById('xpCount').innerText = points;
+                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
+
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('swapContainer').classList.add('active');
                 document.getElementById('actionBtn').style.display = 'block';
-                document.getElementById('status').innerText = "Wallet Connected!";
+                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6) + "...";
+                
                 await updateBalances();
                 setInterval(updateBalances, 5000);
             } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
@@ -140,8 +155,7 @@
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
                 await (await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 1000000 })).wait();
                 document.getElementById('status').innerText = "Swap Success!";
-                points += 20;
-                document.getElementById('xpCount').innerText = points;
+                updateXP(20);
                 updateBalances();
             } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
         };
@@ -153,8 +167,7 @@
                 const tx = await signer.sendTransaction({ to: walletAddress, value: 0, gasLimit: 100000 });
                 await tx.wait();
                 document.getElementById('status').innerText = "Signal Accepted!";
-                points += 10;
-                document.getElementById('xpCount').innerText = points;
+                updateXP(10);
                 updateBalances();
             } catch (e) { document.getElementById('status').innerText = "Signal error."; }
         };
