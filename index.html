@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,12 +19,8 @@
         .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.3s; }
         .swap-btn { background: #10b981; margin-top: 5px; }
         .mint-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: 2px solid #fbbf24; background: transparent; color: #fbbf24; font-weight: bold; width: 100%; margin-bottom: 10px; opacity: 0.4; }
-        .mint-btn.active { opacity: 1; background: rgba(251, 191, 36, 0.1); }
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; height: 14px; }
-        .history { margin-top: 15px; text-align: left; border-top: 1px solid #1e293b; padding-top: 10px; }
         .tx-item { background: #1e293b; padding: 8px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
-        #nftDisplay { display: none; margin: 15px 0; }
-        .nft-image { width: 100px; height: 100px; border-radius: 12px; border: 2px solid #fbbf24; }
     </style>
 </head>
 <body>
@@ -53,106 +49,76 @@
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
         <button id="mintBtn" class="mint-btn">MINT TESTER NFT (200 XP REQ)</button>
         
-        <div id="nftDisplay">
-            <img src="badge.jpg" class="nft-image">
-            <div style="color: #fbbf24; font-weight: bold; margin-top: 8px; font-size: 11px;">NFT MINTED!</div>
-        </div>
-
         <div id="status">Waiting for interaction...</div>
-        <div class="history"><div id="txList"></div></div>
+        <div id="txList"></div>
     </div>
 
     <script>
-        // Configurações da Rede e Pool
-        const CURVE_POOL = '0x2D84D79C852f6842AbE0304b70BbaA1506AdD457';
-        const USDC_TOKEN = '0x2eBa984F70942F46E89163A09E385D678B3F211F';
-        const EURC_TOKEN = '0x89b50855aa3Be2f677cD6303cEC089B5f319D72a';
-        
-        let points = 130;
-        let historyData = [];
+        // ENDEREÇOS REAIS DA REDE ARC TESTNET
+        const CURVE_POOL = "0x2D84D79C852f6842AbE0304b70BbaA1506AdD457";
+        const USDC_TOKEN = "0x2eBa984F70942F46E89163A09E385D678B3F211F";
+        const EURC_TOKEN = "0x89b50855aa3Be2f677cD6303cEC089B5f319D72a";
 
-        // ABI Simplificada para Interação com Curve e ERC20
         const MIN_ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256)"
         ];
 
+        let points = 130;
+
         document.getElementById('swapAmount').oninput = (e) => {
-            // No Curve Testnet a paridade é aproximada, mantemos 1:1 visual para o utilizador
             document.getElementById('swapResult').value = e.target.value;
         };
 
-        function updateUI() {
-            document.getElementById('xpCount').innerText = points;
-            const mBtn = document.getElementById('mintBtn');
-            if(points >= 200) { 
-                mBtn.classList.add('active'); 
-                mBtn.style.opacity = "1";
-                mBtn.innerText = "MINT HUB TESTER NFT";
-            }
-            document.getElementById('txList').innerHTML = historyData.slice(0, 3).map(tx => `
-                <div class="tx-item">
-                    <span>${tx.type}</span>
-                    <a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8; text-decoration:none;">SCAN ↗</a>
-                </div>
-            `).join('');
-        }
-
-        async function handleSwap() {
-            if (!window.ethereum) return alert("Please install Rabby/MetaMask!");
-            const amount = document.getElementById('swapAmount').value;
-            if (!amount || amount <= 0) return alert("Enter amount");
-
+        async function connectAndSwap() {
+            if (!window.ethereum) return alert("Instala a Rabby Wallet!");
+            
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
-                
-                document.getElementById('status').innerText = "1/2: Approving USDC...";
-                
-                // 1. Aprovação do Token
-                const usdcContract = new ethers.Contract(USDC_TOKEN, MIN_ABI, signer);
-                const amountWei = ethers.utils.parseUnits(amount, 18); // Ajustar conforme os decimais do token na rede
-                const approveTx = await usdcContract.approve(CURVE_POOL, amountWei);
-                await approveTx.wait();
+                const amount = document.getElementById('swapAmount').value;
+                if (!amount || amount <= 0) return alert("Insere um valor!");
 
-                document.getElementById('status').innerText = "2/2: Exchanging on Curve...";
-
-                // 2. Troca na Pool (i=0 para USDC, j=1 para EURC)
-                const poolContract = new ethers.Contract(CURVE_POOL, MIN_ABI, signer);
-                const swapTx = await poolContract.exchange(0, 1, amountWei, 0); // _min_dy em 0 para teste
+                document.getElementById('status').innerText = "Passo 1/2: Aprovar USDC...";
+                const usdc = new ethers.Contract(USDC_TOKEN, MIN_ABI, signer);
+                const val = ethers.utils.parseUnits(amount, 18);
                 
-                document.getElementById('status').innerText = "Confirming on network...";
-                await swapTx.wait();
+                // 1. APROVAR
+                const tx1 = await usdc.approve(CURVE_POOL, val);
+                await tx1.wait();
 
+                document.getElementById('status').innerText = "Passo 2/2: Trocar no Curve...";
+                const pool = new ethers.Contract(CURVE_POOL, MIN_ABI, signer);
+                
+                // 2. TROCAR (i=0 USDC, j=1 EURC)
+                const tx2 = await pool.exchange(0, 1, val, 0);
+                document.getElementById('status').innerText = "A processar na rede...";
+                await tx2.wait();
+
+                document.getElementById('status').innerText = "Swap com sucesso!";
                 points += 20;
-                historyData.unshift({ type: "Curve Swap", hash: swapTx.hash });
-                updateUI();
-                document.getElementById('status').innerText = "Swap Successful!";
+                document.getElementById('xpCount').innerText = points;
                 
-                // Sugere adicionar o EURC à carteira
-                window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                        type: 'ERC20',
-                        options: {
-                            address: EURC_TOKEN,
-                            symbol: 'EURC',
-                            decimals: 18,
-                            image: 'https://cryptologos.cc/logos/euro-coin-eurc-logo.png',
-                        },
-                    },
-                });
-
-            } catch (e) {
-                console.error(e);
-                document.getElementById('status').innerText = "Process failed.";
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Erro na transação.";
             }
         }
 
+        document.getElementById('swapBtn').onclick = connectAndSwap;
+
         document.getElementById('actionBtn').onclick = async () => {
-            // Lógica simples de sinal (envio simbólico de 0 ARC para o deployer para ganhar XP)
             if (!window.ethereum) return;
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
             try {
-                const txHash = await window.ethereum.request({
+                const tx = await signer.sendTransaction({ to: CURVE_POOL, value: 0 });
+                document.getElementById('status').innerText = "Signal enviado!";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+            } catch (e) { }
+        };
+    </script>
+</body>
+</html>
