@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Interaction Hub | Shumai1979</title>
+    <title>ARC Developer Hub | Shumai1979</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -25,6 +25,9 @@
         .swap-btn { background: #10b981; }
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; min-height: 14px; }
         .tx-link { display: block; margin-top: 8px; font-size: 10px; color: #38bdf8; text-decoration: none; opacity: 0.8; }
+        .nft-container { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; }
+        .final-badge { width: 220px; border-radius: 15px; border: 3px solid #fbbf24; animation: badgeGlow 2s infinite ease-in-out; }
+        @keyframes badgeGlow { 0% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } 50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.8); } 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } }
     </style>
 </head>
 <body>
@@ -55,15 +58,19 @@
         </div>
 
         <button id="actionBtn" class="main-btn" style="display:none; background: #6366f1;">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <a id="arcscanLink" class="tx-link" href="#" target="_blank" style="display:none;">Last Transaction ↗</a>
-        <div id="status">Ready.</div>
+        <a id="arcscanLink" class="tx-link" href="#" target="_blank" style="display:none;">Last Transaction on Arcscan ↗</a>
+        
+        <div id="status">Ready to connect.</div>
+
+        <div id="nftSection" class="nft-container">
+            <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 10px;">🏆 ARC PIONEER BADGE UNLOCKED 🏆</div>
+            <img src="badge.jpg" class="final-badge" alt="ARC Pioneer Badge">
+        </div>
     </div>
 
     <script>
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-        const USDC_ADDR = "0x2e066a3374e2b02845c470a92f76899f816c2920"; // USDC real
-
         const ABI = [
             "function approve(address s, uint256 a) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 dx, uint256 m) external returns (uint256)",
@@ -72,48 +79,67 @@
             "function allowance(address owner, address spender) public view returns (uint256)"
         ];
 
-        let points = 0; let isReversed = false; let walletAddress = "";
+        let points = 0;
+        let isReversed = false;
+        let walletAddress = "";
 
-        // Sincronização de Balanços corrigida para ler tokens reais
+        function updateExplorer(hash) {
+            const link = document.getElementById('arcscanLink');
+            link.href = "https://testnet.arcscan.app/tx/" + hash;
+            link.style.display = "block";
+        }
+
+        function syncXP(add) {
+            const oldPoints = points;
+            points += add;
+            localStorage.setItem('arc_xp_' + walletAddress, points);
+            document.getElementById('xpCount').innerText = points;
+            if (points >= 200) {
+                document.getElementById('nftSection').style.display = 'block';
+                if (oldPoints < 200) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
         async function updateBalances() {
             if (!window.ethereum || !walletAddress) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const usdcContract = new ethers.Contract(USDC_ADDR, ABI, provider);
+                const balance = await provider.getBalance(walletAddress);
+                const fUSDC = parseFloat(ethers.utils.formatEther(balance)).toFixed(2);
                 const eurcContract = new ethers.Contract(EURC_ADDR, ABI, provider);
-                
-                const [uB, eB] = await Promise.all([
-                    usdcContract.balanceOf(walletAddress),
-                    eurcContract.balanceOf(walletAddress)
-                ]);
-
-                const fUSDC = parseFloat(ethers.utils.formatUnits(uB, 6)).toFixed(2);
-                const fEURC = parseFloat(ethers.utils.formatUnits(eB, 6)).toFixed(2);
-                
+                const eBal = await eurcContract.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
+                const fEURC = parseFloat(ethers.utils.formatUnits(eBal, 6)).toFixed(2);
                 document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
                 document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
             } catch (e) { console.log("Sync..."); }
         }
 
         document.getElementById('connectBtn').onclick = async () => {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            walletAddress = accounts[0];
-            document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('swapContainer').classList.add('active');
-            document.getElementById('actionBtn').style.display = 'block';
-            document.getElementById('status').innerText = "Connected";
-            updateBalances();
-            setInterval(updateBalances, 5000);
+            if (typeof window.ethereum === 'undefined') { alert("MetaMask not found!"); return; }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                walletAddress = accounts[0];
+                const saved = localStorage.getItem('arc_xp_' + walletAddress);
+                points = saved ? parseInt(saved) : 0;
+                document.getElementById('xpCount').innerText = points;
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('swapContainer').classList.add('active');
+                document.getElementById('actionBtn').style.display = 'block';
+                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
+                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
+                await updateBalances();
+                setInterval(updateBalances, 5000);
+            } catch (e) { document.getElementById('status').innerText = "Error."; }
         };
 
-        // Cálculo de DY automático
         document.getElementById('swapAmount').oninput = async () => {
             const val = document.getElementById('swapAmount').value;
             if (!val || val <= 0) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
-                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, ethers.utils.parseUnits(val, 6));
+                const dx = ethers.utils.parseUnits(val.toString(), 6);
+                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
                 document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
             } catch (e) { document.getElementById('swapResult').value = "0.0"; }
         };
@@ -122,48 +148,53 @@
             isReversed = !isReversed;
             document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
             document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
-            document.getElementById('swapAmount').value = ""; document.getElementById('swapResult').value = "";
+            document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
+            document.getElementById('swapAmount').value = "";
+            document.getElementById('swapResult').value = "";
             updateBalances();
         };
 
-        // EXECUÇÃO DO SWAP - AQUI ESTÁ A CORREÇÃO
         document.getElementById('swapBtn').onclick = async () => {
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
                 const amount = document.getElementById('swapAmount').value;
                 const val = ethers.utils.parseUnits(amount, 6);
-                
-                // Pega o endereço do token que está em cima (entrada)
-                const tokenInAddr = isReversed ? EURC_ADDR : USDC_ADDR;
-                const tokenContract = new ethers.Contract(tokenInAddr, ABI, signer);
-                
-                document.getElementById('status').innerText = "Checking permission...";
-                const allowance = await tokenContract.allowance(walletAddress, POOL_ADDR);
-                
-                // Se não houver permissão, pede o Approve (Isso resolve as carteiras secundárias!)
-                if (allowance.lt(val)) {
-                    document.getElementById('status').innerText = "Please Approve Token...";
-                    const txApp = await tokenContract.approve(POOL_ADDR, ethers.constants.MaxUint256);
-                    await txApp.wait();
+                const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
+
+                // SE FOR EURC -> USDC, PRECISA DE APPROVE
+                if (isReversed) {
+                    const eurc = new ethers.Contract(EURC_ADDR, ABI, signer);
+                    document.getElementById('status').innerText = "Checking EURC Allowance...";
+                    const allowance = await eurc.allowance(walletAddress, POOL_ADDR);
+                    if (allowance.lt(val)) {
+                        document.getElementById('status').innerText = "Please Approve EURC...";
+                        const appTx = await eurc.approve(POOL_ADDR, ethers.constants.MaxUint256);
+                        await appTx.wait();
+                    }
                 }
 
                 document.getElementById('status').innerText = "Swapping...";
-                const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
-                const txSwap = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 800000 });
-                
-                const link = document.getElementById('arcscanLink');
-                link.href = "https://testnet.arcscan.app/tx/" + txSwap.hash;
-                link.style.display = "block";
-
-                await txSwap.wait();
-                document.getElementById('status').innerText = "Success!";
+                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 800000 });
+                updateExplorer(tx.hash);
+                await tx.wait();
+                document.getElementById('status').innerText = "Swap Complete!";
+                syncXP(20);
                 updateBalances();
-                confetti({ particleCount: 150 });
-            } catch (e) { 
-                document.getElementById('status').innerText = "Failed. Try again."; 
-                console.error(e);
-            }
+            } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
+        };
+
+        document.getElementById('actionBtn').onclick = async () => {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const tx = await signer.sendTransaction({ to: walletAddress, value: 0 });
+                updateExplorer(tx.hash);
+                await tx.wait();
+                document.getElementById('status').innerText = "Signal Received!";
+                syncXP(10);
+                updateBalances();
+            } catch (e) { document.getElementById('status').innerText = "Signal failed."; }
         };
     </script>
 </body>
