@@ -49,16 +49,18 @@
     </div>
 
     <script>
-        // Endereços originais que funcionavam na interface
-        const POOL_ADDR = "0x2D84D79C852f6842AbE0304b70BbaA1506Add457";
-        const USDC_ADDR = "0x2eBa984F70942F46E89163A09E385D678B3F211F";
-        const DECIMALS = 6; // Mantemos os 6 decimais para evitar o erro de balance
+        // Endereços em minúsculas para contornar o erro de checksum do ethers.js
+        const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
+        const USDC_ADDR = "0x2eba984f70942f46e89163a09e385d678b3f211f";
+        const DECIMALS = 6; 
 
         const ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256)",
             "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)"
         ];
+
+        let points = 130;
 
         async function updatePrice() {
             const amount = document.getElementById('swapAmount').value;
@@ -69,7 +71,9 @@
                 const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
                 const dy = await pool.get_dy(0, 1, dx);
                 document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
-            } catch (e) { console.log("Erro no cálculo"); }
+            } catch (e) { 
+                console.log("A aguardar pool..."); 
+            }
         }
 
         document.getElementById('swapAmount').oninput = updatePrice;
@@ -84,29 +88,38 @@
                 
                 const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, DECIMALS);
                 
-                // Aprovação simples
+                // 1. Approve
+                document.getElementById('status').innerText = "1/2: Autorizando USDC...";
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, signer);
                 const tx1 = await usdc.approve(POOL_ADDR, val);
                 await tx1.wait();
 
-                // Troca simples
+                // 2. Swap
+                document.getElementById('status').innerText = "2/2: Confirmando Swap...";
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
-                const tx2 = await pool.exchange(0, 1, val, 0, { gasLimit: 500000 });
+                const tx2 = await pool.exchange(0, 1, val, 0, { gasLimit: 1000000 });
                 await tx2.wait();
 
                 document.getElementById('status').innerText = "Sucesso!";
-                document.getElementById('xpCount').innerText = "150";
+                points += 20;
+                document.getElementById('xpCount').innerText = points;
             } catch (err) {
-                document.getElementById('status').innerText = "Erro na transação";
+                console.error(err);
+                document.getElementById('status').innerText = "Erro. Verifica o saldo de gas.";
             }
         };
 
         document.getElementById('actionBtn').onclick = async () => {
             if (!window.ethereum) return;
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            await signer.sendTransaction({ to: POOL_ADDR, value: 0 });
-            document.getElementById('status').innerText = "Sinal enviado!";
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                await signer.sendTransaction({ to: POOL_ADDR, value: 0 });
+                document.getElementById('status').innerText = "Signal enviado!";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+            } catch (e) {}
         };
     </script>
 </body>
