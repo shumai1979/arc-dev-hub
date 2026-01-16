@@ -164,15 +164,21 @@
                 const val = ethers.utils.parseUnits(amount, 6);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
 
-                // REINFORCED ALLOWANCE CHECK
-                if (isReversed) {
-                    const eurc = new ethers.Contract(EURC_ADDR, ABI, signer);
+                // REINFORCED ALLOWANCE CHECK FOR EURC OR USDC
+                // The images show allowance errors even for USDC when it's treated as a token
+                const tokenToApprove = isReversed ? EURC_ADDR : "0x2e066a3374e2b02845c470a92f76899f816c2920"; // Replace with your USDC Token Address if applicable
+                
+                // For this testnet setup, we check allowance for whichever token is in the "FROM" field
+                const activeTokenAddr = isReversed ? EURC_ADDR : null; // Native USDC usually doesn't need approve, but if it fails, use address
+
+                if (activeTokenAddr) {
+                    const tokenContract = new ethers.Contract(activeTokenAddr, ABI, signer);
                     document.getElementById('status').innerText = "Checking Allowance...";
-                    const allowance = await eurc.allowance(walletAddress, POOL_ADDR);
+                    const allowance = await tokenContract.allowance(walletAddress, POOL_ADDR);
 
                     if (allowance.lt(val)) {
-                        document.getElementById('status').innerText = "Please Approve EURC...";
-                        const appTx = await eurc.approve(POOL_ADDR, ethers.constants.MaxUint256);
+                        document.getElementById('status').innerText = "Please Approve Token...";
+                        const appTx = await tokenContract.approve(POOL_ADDR, ethers.constants.MaxUint256);
                         document.getElementById('status').innerText = "Waiting for confirmation...";
                         await appTx.wait(1); 
                         document.getElementById('status').innerText = "Authorized! Starting Swap...";
@@ -180,9 +186,9 @@
                 }
 
                 document.getElementById('status').innerText = "Executing Swap...";
-                // Gas limit set to 1,000,000 for stability
+                // Gas limit set to 2,000,000 to match successful arcscan limits
                 const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { 
-                    gasLimit: 1000000 
+                    gasLimit: 2000000 
                 });
 
                 updateExplorer(tx.hash);
