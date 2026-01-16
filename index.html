@@ -41,14 +41,14 @@
         <button id="connectBtn" class="main-btn">CONNECT WALLET</button>
 
         <div class="swap-box" id="swapContainer">
-            <span id="labelFrom" style="font-size: 9px; color: #94a3b8;">DE (USDC)</span>
+            <span id="labelFrom" style="font-size: 9px; color: #94a3b8;">FROM (USDC)</span>
             <div class="swap-input-group">
                 <input type="number" id="swapAmount" class="swap-input" placeholder="0.0">
                 <span id="tokenFrom" class="token-tag">USDC</span>
             </div>
             <span id="balanceFrom" class="balance-info">Balance: --</span>
             <div class="switch-btn" id="reverseBtn">⇅</div>
-            <span id="labelTo" style="font-size: 9px; color: #94a3b8;">PARA (EURC)</span>
+            <span id="labelTo" style="font-size: 9px; color: #94a3b8;">TO (EURC)</span>
             <div class="swap-input-group">
                 <input type="text" id="swapResult" class="swap-input" readonly placeholder="0.0">
                 <span id="tokenTo" class="token-tag">EURC</span>
@@ -148,7 +148,7 @@
             isReversed = !isReversed;
             document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
             document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
-            document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
+            document.getElementById('labelFrom').innerText = `FROM (${isReversed ? 'EURC' : 'USDC'})`;
             document.getElementById('swapAmount').value = "";
             document.getElementById('swapResult').value = "";
             updateBalances();
@@ -159,29 +159,43 @@
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
                 const amount = document.getElementById('swapAmount').value;
+                if (!amount || amount <= 0) return;
+
                 const val = ethers.utils.parseUnits(amount, 6);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
 
-                // SE FOR EURC -> USDC, PRECISA DE APPROVE
+                // REINFORCED ALLOWANCE CHECK
                 if (isReversed) {
                     const eurc = new ethers.Contract(EURC_ADDR, ABI, signer);
-                    document.getElementById('status').innerText = "Checking EURC Allowance...";
+                    document.getElementById('status').innerText = "Checking Allowance...";
                     const allowance = await eurc.allowance(walletAddress, POOL_ADDR);
+
                     if (allowance.lt(val)) {
                         document.getElementById('status').innerText = "Please Approve EURC...";
                         const appTx = await eurc.approve(POOL_ADDR, ethers.constants.MaxUint256);
-                        await appTx.wait();
+                        document.getElementById('status').innerText = "Waiting for confirmation...";
+                        await appTx.wait(1); 
+                        document.getElementById('status').innerText = "Authorized! Starting Swap...";
                     }
                 }
 
-                document.getElementById('status').innerText = "Swapping...";
-                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 800000 });
+                document.getElementById('status').innerText = "Executing Swap...";
+                // Gas limit set to 1,000,000 for stability
+                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { 
+                    gasLimit: 1000000 
+                });
+
                 updateExplorer(tx.hash);
                 await tx.wait();
+                
                 document.getElementById('status').innerText = "Swap Complete!";
                 syncXP(20);
                 updateBalances();
-            } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('status').innerText = "Swap failed. Check gas/balance."; 
+            }
         };
 
         document.getElementById('actionBtn').onclick = async () => {
