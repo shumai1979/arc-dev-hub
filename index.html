@@ -45,7 +45,7 @@
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Ready for next action...</div>
+        <div id="status">Swap stable. Testing Signal...</div>
     </div>
 
     <script>
@@ -70,21 +70,18 @@
                 const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
                 const dy = await pool.get_dy(0, 1, dx);
                 document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
-            } catch (e) { 
-                console.log("Syncing price..."); 
-            }
+            } catch (e) { console.log("Cálculo ativo."); }
         }
 
         document.getElementById('swapAmount').oninput = updatePrice;
 
         document.getElementById('swapBtn').onclick = async () => {
-            if (!window.ethereum) return alert("Rabby not detected.");
+            if (!window.ethereum) return;
             try {
-                document.getElementById('status').innerText = "Processing Swap...";
+                document.getElementById('status').innerText = "Swap em curso...";
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
-                
                 const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, DECIMALS);
                 
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, signer);
@@ -95,37 +92,36 @@
                 const tx2 = await pool.exchange(0, 1, val, 0, { gasLimit: 1000000 });
                 await tx2.wait();
 
-                document.getElementById('status').innerText = "Swap Success!";
+                document.getElementById('status').innerText = "Sucesso!";
                 points += 20;
                 document.getElementById('xpCount').innerText = points;
             } catch (err) {
-                document.getElementById('status').innerText = "Swap failed.";
+                document.getElementById('status').innerText = "Erro no Swap.";
             }
         };
 
+        // SIGNAL CORRIGIDO: Envia para si mesmo para evitar rejeição do contrato
         document.getElementById('actionBtn').onclick = async () => {
-            if (!window.ethereum) return alert("Rabby not detected.");
+            if (!window.ethereum) return;
             try {
-                document.getElementById('status').innerText = "Sending Signal...";
+                document.getElementById('status').innerText = "A enviar sinal...";
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                // Garantir que a conta está conectada
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
+                const myAddr = await signer.getAddress();
                 
-                // Transação de valor zero com gasLimit manual
                 const tx = await signer.sendTransaction({
-                    to: POOL_ADDR,
+                    to: myAddr,
                     value: 0,
-                    gasLimit: 100000 
+                    gasLimit: 50000
                 });
                 
                 await tx.wait();
-                document.getElementById('status').innerText = "Signal Received!";
+                document.getElementById('status').innerText = "Sinal Aceite!";
                 points += 10;
                 document.getElementById('xpCount').innerText = points;
             } catch (e) {
-                console.error(e);
-                document.getElementById('status').innerText = "Signal failed.";
+                document.getElementById('status').innerText = "Falha no sinal.";
             }
         };
     </script>
