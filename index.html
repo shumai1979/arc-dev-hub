@@ -95,4 +95,107 @@
             localStorage.setItem('arc_xp_' + walletAddress, points);
             document.getElementById('xpCount').innerText = points;
             if (points >= 200) {
-                document.getElementById('nftSection').style.display = '
+                document.getElementById('nftSection').style.display = 'block';
+                if (oldPoints < 200) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        async function updateBalances() {
+            if (!window.ethereum || !walletAddress) return;
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const balance = await provider.getBalance(walletAddress);
+                const fUSDC = parseFloat(ethers.utils.formatEther(balance)).toFixed(2);
+                const eurcContract = new ethers.Contract(EURC_ADDR, ABI, provider);
+                const eBal = await eurcContract.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
+                const fEURC = parseFloat(ethers.utils.formatUnits(eBal, 6)).toFixed(2);
+                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
+                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
+            } catch (e) { console.log("Sync..."); }
+        }
+
+        document.getElementById('connectBtn').onclick = async () => {
+            if (typeof window.ethereum === 'undefined') { alert("MetaMask not found!"); return; }
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                walletAddress = accounts[0];
+                const saved = localStorage.getItem('arc_xp_' + walletAddress);
+                points = saved ? parseInt(saved) : 0;
+                document.getElementById('xpCount').innerText = points;
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('swapContainer').classList.add('active');
+                document.getElementById('actionBtn').style.display = 'block';
+                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
+                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
+                await updateBalances();
+                setInterval(updateBalances, 5000);
+            } catch (e) { document.getElementById('status').innerText = "Error."; }
+        };
+
+        document.getElementById('swapAmount').oninput = async () => {
+            const val = document.getElementById('swapAmount').value;
+            if (!val || val <= 0) return;
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
+                const dx = ethers.utils.parseUnits(val.toString(), 6);
+                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
+                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
+            } catch (e) { document.getElementById('swapResult').value = "0.0"; }
+        };
+
+        document.getElementById('reverseBtn').onclick = () => {
+            isReversed = !isReversed;
+            document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
+            document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
+            document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
+            document.getElementById('swapAmount').value = "";
+            document.getElementById('swapResult').value = "";
+            updateBalances();
+        };
+
+        document.getElementById('swapBtn').onclick = async () => {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const amount = document.getElementById('swapAmount').value;
+                const val = ethers.utils.parseUnits(amount, 6);
+                const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
+
+                // SE FOR EURC -> USDC, PRECISA DE APPROVE
+                if (isReversed) {
+                    const eurc = new ethers.Contract(EURC_ADDR, ABI, signer);
+                    document.getElementById('status').innerText = "Checking EURC Allowance...";
+                    const allowance = await eurc.allowance(walletAddress, POOL_ADDR);
+                    if (allowance.lt(val)) {
+                        document.getElementById('status').innerText = "Please Approve EURC...";
+                        const appTx = await eurc.approve(POOL_ADDR, ethers.constants.MaxUint256);
+                        await appTx.wait();
+                    }
+                }
+
+                document.getElementById('status').innerText = "Swapping...";
+                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 800000 });
+                updateExplorer(tx.hash);
+                await tx.wait();
+                document.getElementById('status').innerText = "Swap Complete!";
+                syncXP(20);
+                updateBalances();
+            } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
+        };
+
+        document.getElementById('actionBtn').onclick = async () => {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const tx = await signer.sendTransaction({ to: walletAddress, value: 0 });
+                updateExplorer(tx.hash);
+                await tx.wait();
+                document.getElementById('status').innerText = "Signal Received!";
+                syncXP(10);
+                updateBalances();
+            } catch (e) { document.getElementById('status').innerText = "Signal failed."; }
+        };
+    </script>
+</body>
+</html>
