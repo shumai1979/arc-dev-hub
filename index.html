@@ -49,44 +49,78 @@
     </div>
 
     <script>
-        // ENDEREÇOS COM CHECKSUM CORRIGIDO
-        const CURVE_POOL = "0x2D84D79C852f6842AbE0304b70BbaA1506AdD457";
-        const USDC_TOKEN = "0x2eBa984F70942F46E89163A09E385D678B3F211F";
-        const EURC_TOKEN = "0x89b50855aa3Be2f677cD6303cEC089B5f319D72a";
+        // Endereços formatados corretamente
+        const ADDR = {
+            pool: "0x2D84D79C852f6842AbE0304b70BbaA1506AdD457",
+            usdc: "0x2eBa984F70942F46E89163A09E385D678B3F211F",
+            eurc: "0x89b50855aa3Be2f677cD6303cEC089B5f319D72a"
+        };
 
-        const MIN_ABI = [
-            "function approve(address spender, uint256 amount) public returns (bool)",
-            "function exchange(int128 i, int128 j, uint256 _dx, uint256 _min_dy) external returns (uint256)",
-            "function get_dy(int128 i, int128 j, uint256 _dx) external view returns (uint256)"
+        const ABI = [
+            "function approve(address s, uint256 a) public returns (bool)",
+            "function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256)",
+            "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)"
         ];
 
         let points = 130;
 
-        // Função para calcular o preço real da Pool
         async function updatePrice() {
-            const amount = document.getElementById('swapAmount').value;
-            if (!amount || amount <= 0 || !window.ethereum) {
-                document.getElementById('swapResult').value = "0.0";
-                return;
-            }
-
+            const val = document.getElementById('swapAmount').value;
+            if (!val || val <= 0 || !window.ethereum) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const pool = new ethers.Contract(CURVE_POOL, MIN_ABI, provider);
-                const dx = ethers.utils.parseUnits(amount.toString(), 18);
-                
-                // Pergunta à pool: quanto EURC recebo por este USDC? (i=0, j=1)
+                const pool = new ethers.Contract(ADDR.pool, ABI, provider);
+                const dx = ethers.utils.parseUnits(val.toString(), 18);
                 const dy = await pool.get_dy(0, 1, dx);
                 document.getElementById('swapResult').value = parseFloat(ethers.utils.formatUnits(dy, 18)).toFixed(6);
-            } catch (err) {
-                console.log("Aguardando carteira ou erro de pool...");
-            }
+            } catch (e) { console.log("Pool sync..."); }
         }
 
         document.getElementById('swapAmount').oninput = updatePrice;
 
-        async function connectAndSwap() {
-            if (!window.ethereum) return alert("Instala a Rabby Wallet!");
-            
+        document.getElementById('swapBtn').onclick = async () => {
+            if (!window.ethereum) return alert("Rabby não detetada!");
+            try {
+                document.getElementById('status').innerText = "A ligar à carteira...";
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+
+                const amount = document.getElementById('swapAmount').value;
+                const val = ethers.utils.parseUnits(amount.toString(), 18);
+
+                // PASSO 1: APPROVE
+                document.getElementById('status').innerText = "Passo 1: Aprovar USDC...";
+                const usdc = new ethers.Contract(ADDR.usdc, ABI, signer);
+                const tx1 = await usdc.approve(ADDR.pool, val);
+                await tx1.wait();
+
+                // PASSO 2: SWAP
+                document.getElementById('status').innerText = "Passo 2: Trocar no Curve...";
+                const pool = new ethers.Contract(ADDR.pool, ABI, signer);
+                const tx2 = await pool.exchange(0, 1, val, 0);
+                await tx2.wait();
+
+                document.getElementById('status').innerText = "Sucesso!";
+                points += 20;
+                document.getElementById('xpCount').innerText = points;
+            } catch (err) {
+                document.getElementById('status').innerText = "Erro: " + (err.reason || "Cancelado");
+            }
+        };
+
+        document.getElementById('actionBtn').onclick = async () => {
+            if (!window.ethereum) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                await signer.sendTransaction({ to: ADDR.pool, value: 0 });
+                document.getElementById('status').innerText = "Signal OK!";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+            } catch (e) {}
+        };
+    </script>
+</body>
+</html>
