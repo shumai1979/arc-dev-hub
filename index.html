@@ -7,23 +7,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #020617; color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background-color: #0f172a; padding: 25px; border-radius: 20px; display: inline-block; width: 100%; max-width: 420px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); position: relative; }
+        .card { background-color: #0f172a; padding: 25px; border-radius: 20px; display: inline-block; width: 100%; max-width: 420px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
         h1 { color: #38bdf8; font-size: 22px; margin-bottom: 15px; }
         .badge-container { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; }
         .status-badge { background: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
         .xp-badge { background: #7c3aed; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
-        .swap-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #334155; text-align: left; }
+        
+        .swap-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #334155; text-align: left; opacity: 0.4; pointer-events: none; transition: 0.3s; }
+        .swap-box.active { opacity: 1; pointer-events: auto; }
+        
         .swap-input-group { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
         .swap-input { background: transparent; border: none; color: white; font-size: 18px; width: 60%; outline: none; }
         .token-tag { color: #38bdf8; font-weight: bold; font-size: 14px; }
-        .balance-info { font-size: 9px; color: #94a3b8; display: block; margin-top: -5px; margin-bottom: 5px; }
-        .switch-btn { cursor: pointer; color: #38bdf8; font-size: 16px; text-align: center; user-select: none; transition: 0.2s; margin: 5px 0; }
-        .switch-btn:hover { transform: scale(1.2); }
-        .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.3s; }
-        .swap-btn { background: #10b981; margin-top: 5px; }
+        .balance-info { font-size: 10px; color: #94a3b8; display: block; margin-top: -5px; margin-bottom: 5px; font-family: monospace; }
+        
+        .switch-btn { cursor: pointer; color: #38bdf8; font-size: 20px; text-align: center; margin: 5px 0; transition: 0.3s; user-select: none; }
+        .switch-btn:hover { transform: rotate(180deg) scale(1.2); }
+        
+        .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.2s; }
+        .main-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .swap-btn { background: #10b981; }
+        #connectBtn { background: #f59e0b; margin-bottom: 20px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
+        
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; min-height: 14px; }
-        .nft-container { margin-top: 15px; display: none; border-top: 1px solid #334155; padding-top: 15px; animation: fadeIn 1s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .nft-container { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -34,13 +42,15 @@
             <div class="xp-badge">TOTAL XP: <span id="xpCount">100</span></div>
         </div>
 
-        <div class="swap-box">
+        <button id="connectBtn" class="main-btn">CONNECT WALLET</button>
+
+        <div class="swap-box" id="swapContainer">
             <span id="labelFrom" style="font-size: 9px; color: #94a3b8;">DE (USDC)</span>
             <div class="swap-input-group">
                 <input type="number" id="swapAmount" class="swap-input" placeholder="0.0">
                 <span id="tokenFrom" class="token-tag">USDC</span>
             </div>
-            <span id="balanceFrom" class="balance-info">Balance: 0.00</span>
+            <span id="balanceFrom" class="balance-info">Balance: --</span>
 
             <div class="switch-btn" id="reverseBtn">⇅</div>
 
@@ -49,24 +59,24 @@
                 <input type="text" id="swapResult" class="swap-input" readonly placeholder="0.0">
                 <span id="tokenTo" class="token-tag">EURC</span>
             </div>
-            <span id="balanceTo" class="balance-info">Balance: 0.00</span>
+            <span id="balanceTo" class="balance-info">Balance: --</span>
             
             <button id="swapBtn" class="main-btn swap-btn">EXECUTE TOKEN SWAP</button>
         </div>
 
-        <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Wallet balances active.</div>
+        <button id="actionBtn" class="main-btn" style="display:none; background: #6366f1;">SEND DEVELOPER SIGNAL (+10 XP)</button>
+        <div id="status">Please connect your wallet to see balances.</div>
 
         <div id="nftSection" class="nft-container">
-            <div style="color: #fbbf24; font-size: 12px; font-weight: bold; margin-bottom: 8px;">✨ NFT UNLOCKED: ARC PIONEER ✨</div>
-            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=arc&backgroundColor=38bdf8" alt="NFT" style="width: 100px; border-radius: 10px; border: 2px solid #fbbf24;">
+            <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 10px;">🏆 ARC PIONEER UNLOCKED 🏆</div>
+            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=shumai&backgroundColor=38bdf8" style="width: 120px; border-radius: 15px; border: 3px solid #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);">
         </div>
     </div>
 
     <script>
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const USDC_ADDR = "0x2eba984f70942f46e89163a09e385d678b3f211f";
-        const EURC_ADDR = "0x341d39768652f143003004838618a8007629230d"; // Endereço estimado do EURC
+        const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a"; // Endereço atualizado!
         const DECIMALS = 6; 
 
         const ABI = [
@@ -76,88 +86,120 @@
             "function balanceOf(address account) public view returns (uint256)"
         ];
 
-        let points = 100; // XP começa em 100 agora
+        let points = 100;
         let isReversed = false;
 
         async function updateData() {
-            const amount = document.getElementById('swapAmount').value;
             if (!window.ethereum) return;
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const accounts = await provider.listAccounts();
             if (accounts.length === 0) return;
             const userAddr = accounts[0];
 
-            // Atualizar Saldos
+            // 1. Atualizar Saldos Reais
             try {
-                const usdc = new ethers.Contract(USDC_ADDR, ABI, provider);
-                const eurc = new ethers.Contract(EURC_ADDR, ABI, provider);
-                const bUSDC = await usdc.balanceOf(userAddr);
-                const bEURC = await eurc.balanceOf(userAddr);
+                const usdcContract = new ethers.Contract(USDC_ADDR, ABI, provider);
+                const eurcContract = new ethers.Contract(EURC_ADDR, ABI, provider);
                 
+                const [balUSDC, balEURC] = await Promise.all([
+                    usdcContract.balanceOf(userAddr),
+                    eurcContract.balanceOf(userAddr)
+                ]);
+
                 if (!isReversed) {
-                    document.getElementById('balanceFrom').innerText = `Balance: ${ethers.utils.formatUnits(bUSDC, 6)} USDC`;
-                    document.getElementById('balanceTo').innerText = `Balance: ${ethers.utils.formatUnits(bEURC, 6)} EURC`;
+                    document.getElementById('balanceFrom').innerText = `Balance: ${ethers.utils.formatUnits(balUSDC, 6)} USDC`;
+                    document.getElementById('balanceTo').innerText = `Balance: ${ethers.utils.formatUnits(balEURC, 6)} EURC`;
                 } else {
-                    document.getElementById('balanceFrom').innerText = `Balance: ${ethers.utils.formatUnits(bEURC, 6)} EURC`;
-                    document.getElementById('balanceTo').innerText = `Balance: ${ethers.utils.formatUnits(bUSDC, 6)} USDC`;
+                    document.getElementById('balanceFrom').innerText = `Balance: ${ethers.utils.formatUnits(balEURC, 6)} EURC`;
+                    document.getElementById('balanceTo').innerText = `Balance: ${ethers.utils.formatUnits(balUSDC, 6)} USDC`;
                 }
-            } catch (e) { console.log("Erro saldos"); }
+            } catch (e) { console.error("Erro ao ler saldos."); }
 
-            // Atualizar Cotação
-            if (amount > 0) {
-                try {
-                    const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
-                    const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
-                    const i = isReversed ? 1 : 0;
-                    const j = isReversed ? 0 : 1;
-                    const dy = await pool.get_dy(i, j, dx);
-                    document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
-                } catch (e) { document.getElementById('swapResult').value = "0.0"; }
-            }
-
-            // Verificar NFT aos 200 XP
+            // 2. Verificar NFT (200 XP)
             if (points >= 200) {
                 document.getElementById('nftSection').style.display = 'block';
             }
         }
 
-        document.getElementById('swapAmount').oninput = updateData;
+        document.getElementById('connectBtn').onclick = async () => {
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('swapContainer').classList.add('active');
+                document.getElementById('actionBtn').style.display = 'block';
+                document.getElementById('status').innerText = "Wallet Connected Successfully!";
+                updateData();
+            } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
+        };
 
-        // Função de Inverter Tokens
+        document.getElementById('swapAmount').oninput = async () => {
+            const amount = document.getElementById('swapAmount').value;
+            if (!amount || amount <= 0) {
+                document.getElementById('swapResult').value = "";
+                return;
+            }
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
+                const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
+                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
+                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
+            } catch (e) { document.getElementById('swapResult').value = "0.0"; }
+        };
+
         document.getElementById('reverseBtn').onclick = () => {
             isReversed = !isReversed;
-            document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
-            document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
-            document.getElementById('labelFrom').innerText = isReversed ? "DE (EURC)" : "DE (USDC)";
-            document.getElementById('labelTo').innerText = isReversed ? "PARA (USDC)" : "PARA (EURC)";
+            const from = isReversed ? "EURC" : "USDC";
+            const to = isReversed ? "USDC" : "EURC";
+            
+            document.getElementById('tokenFrom').innerText = from;
+            document.getElementById('tokenTo').innerText = to;
+            document.getElementById('labelFrom').innerText = `DE (${from})`;
+            document.getElementById('labelTo').innerText = `PARA (${to})`;
+            
             document.getElementById('swapAmount').value = "";
             document.getElementById('swapResult').value = "";
             updateData();
         };
 
         document.getElementById('swapBtn').onclick = async () => {
-            if (!window.ethereum) return;
             try {
-                document.getElementById('status').innerText = "Processing...";
+                document.getElementById('status').innerText = "Initiating Swap...";
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
                 const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, DECIMALS);
                 
-                const tokenAddr = isReversed ? EURC_ADDR : USDC_ADDR;
-                const tokenContract = new ethers.Contract(tokenAddr, ABI, signer);
+                const currentTokenAddr = isReversed ? EURC_ADDR : USDC_ADDR;
+                const tokenContract = new ethers.Contract(currentTokenAddr, ABI, signer);
                 
-                document.getElementById('status').innerText = "1/2: Approving...";
-                const tx1 = await tokenContract.approve(POOL_ADDR, val);
-                await tx1.wait();
+                document.getElementById('status').innerText = "Approving Token...";
+                await (await tokenContract.approve(POOL_ADDR, val)).wait();
 
-                document.getElementById('status').innerText = "2/2: Swapping...";
+                document.getElementById('status').innerText = "Executing Exchange...";
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
-                const i = isReversed ? 1 : 0;
-                const j = isReversed ? 0 : 1;
-                const tx2 = await pool.exchange(i, j, val, 0, { gasLimit: 1000000 });
-                await tx2.wait();
+                await (await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 1000000 })).wait();
 
-                document.getElementById('status').innerText = "Swap Success!";
+                document.getElementById('status').innerText = "Swap Completed!";
                 points += 20;
-                document.getElementById('xpCount').innerText
+                document.getElementById('xpCount').innerText = points;
+                updateData();
+            } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
+        };
+
+        document.getElementById('actionBtn').onclick = async () => {
+            try {
+                document.getElementById('status').innerText = "Sending Signal...";
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const tx = await signer.sendTransaction({ to: await signer.getAddress(), value: 0, gasLimit: 100000 });
+                await tx.wait();
+                document.getElementById('status').innerText = "Signal Accepted (+10 XP)";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+                updateData();
+            } catch (e) { document.getElementById('status').innerText = "Signal error."; }
+        };
+    </script>
+</body>
+</html>
