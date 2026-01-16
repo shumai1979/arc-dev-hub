@@ -71,7 +71,7 @@
     <script>
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-        const USDC_ADDR = "0x2e066a3374e2b02845c470a92f76899f816c2920"; // Adicionado para garantir o check universal
+        const USDC_TOKEN_ADDR = "0x2e066a3374e2b02845c470a92f76899f816c2920";
 
         const ABI = [
             "function approve(address s, uint256 a) public returns (bool)",
@@ -92,46 +92,42 @@
         }
 
         function syncXP(add) {
-            const oldPoints = points;
             points += add;
             localStorage.setItem('arc_xp_' + walletAddress, points);
             document.getElementById('xpCount').innerText = points;
-            if (points >= 200) {
-                document.getElementById('nftSection').style.display = 'block';
-                if (oldPoints < 200) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            }
+            if (points >= 200) document.getElementById('nftSection').style.display = 'block';
         }
 
         async function updateBalances() {
             if (!window.ethereum || !walletAddress) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const balance = await provider.getBalance(walletAddress);
-                const fUSDC = parseFloat(ethers.utils.formatEther(balance)).toFixed(2);
+                const usdcContract = new ethers.Contract(USDC_TOKEN_ADDR, ABI, provider);
                 const eurcContract = new ethers.Contract(EURC_ADDR, ABI, provider);
-                const eBal = await eurcContract.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
+                
+                const uBal = await usdcContract.balanceOf(walletAddress);
+                const eBal = await eurcContract.balanceOf(walletAddress);
+                
+                const fUSDC = parseFloat(ethers.utils.formatUnits(uBal, 6)).toFixed(2);
                 const fEURC = parseFloat(ethers.utils.formatUnits(eBal, 6)).toFixed(2);
+                
                 document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
                 document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
-            } catch (e) { console.log("Syncing..."); }
+            } catch (e) { console.error("Balance error:", e); }
         }
 
         document.getElementById('connectBtn').onclick = async () => {
-            if (typeof window.ethereum === 'undefined') { alert("MetaMask not found!"); return; }
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                walletAddress = accounts[0];
-                const saved = localStorage.getItem('arc_xp_' + walletAddress);
-                points = saved ? parseInt(saved) : 0;
-                document.getElementById('xpCount').innerText = points;
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('swapContainer').classList.add('active');
-                document.getElementById('actionBtn').style.display = 'block';
-                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
-                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
-                await updateBalances();
-                setInterval(updateBalances, 5000);
-            } catch (e) { document.getElementById('status').innerText = "Connection error."; }
+            if (typeof window.ethereum === 'undefined') return;
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            walletAddress = accounts[0];
+            points = parseInt(localStorage.getItem('arc_xp_' + walletAddress)) || 0;
+            document.getElementById('xpCount').innerText = points;
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('swapContainer').classList.add('active');
+            document.getElementById('actionBtn').style.display = 'block';
+            document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
+            if (points >= 200) document.getElementById('nftSection').style.display = 'block';
+            await updateBalances();
         };
 
         document.getElementById('swapAmount').oninput = async () => {
@@ -164,40 +160,33 @@
                 if (!amount || amount <= 0) return;
 
                 const val = ethers.utils.parseUnits(amount, 6);
+                const activeToken = isReversed ? EURC_ADDR : USDC_TOKEN_ADDR;
+                const tokenContract = new ethers.Contract(activeToken, ABI, signer);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
 
-                // --- UNIVERSAL ALLOWANCE CHECK ---
-                // Verifica o token que está no campo "FROM"
-                const activeTokenAddr = isReversed ? EURC_ADDR : USDC_ADDR;
-                const tokenContract = new ethers.Contract(activeTokenAddr, ABI, signer);
-                
                 document.getElementById('status').innerText = "Checking permissions...";
                 const allowance = await tokenContract.allowance(walletAddress, POOL_ADDR);
 
                 if (allowance.lt(val)) {
-                    document.getElementById('status').innerText = "Please Approve in Wallet...";
+                    document.getElementById('status').innerText = "Please Approve Token...";
                     const appTx = await tokenContract.approve(POOL_ADDR, ethers.constants.MaxUint256);
-                    document.getElementById('status').innerText = "Confirming Approval...";
                     await appTx.wait(1); 
-                    document.getElementById('status').innerText = "Authorized! Swapping...";
                 }
-                // --- END OF CHECK ---
 
-                document.getElementById('status').innerText = "Sending Swap...";
+                document.getElementById('status').innerText = "Executing swap...";
                 const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { 
-                    gasLimit: 1200000 
+                    gasLimit: 1000000 
                 });
 
                 updateExplorer(tx.hash);
                 await tx.wait();
-                
                 document.getElementById('status').innerText = "Swap Complete!";
                 syncXP(20);
                 updateBalances();
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 } });
             } catch (e) { 
                 console.error(e);
-                document.getElementById('status').innerText = "Transaction failed. Check Gas/Balance."; 
+                document.getElementById('status').innerText = "Transaction failed."; 
             }
         };
 
@@ -210,7 +199,6 @@
                 await tx.wait();
                 document.getElementById('status').innerText = "Signal Confirmed!";
                 syncXP(10);
-                updateBalances();
             } catch (e) { document.getElementById('status').innerText = "Signal failed."; }
         };
     </script>
