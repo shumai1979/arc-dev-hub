@@ -45,7 +45,7 @@
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Swap stable. Testing Signal...</div>
+        <div id="status">Swap active. Fix applied to Signal.</div>
     </div>
 
     <script>
@@ -76,9 +76,9 @@
         document.getElementById('swapAmount').oninput = updatePrice;
 
         document.getElementById('swapBtn').onclick = async () => {
-            if (!window.ethereum) return;
+            if (!window.ethereum) return alert("Rabby não detectada.");
             try {
-                document.getElementById('status').innerText = "Swap em curso...";
+                document.getElementById('status').innerText = "Processando Swap...";
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
@@ -92,7 +92,7 @@
                 const tx2 = await pool.exchange(0, 1, val, 0, { gasLimit: 1000000 });
                 await tx2.wait();
 
-                document.getElementById('status').innerText = "Sucesso!";
+                document.getElementById('status').innerText = "Swap com sucesso!";
                 points += 20;
                 document.getElementById('xpCount').innerText = points;
             } catch (err) {
@@ -100,20 +100,20 @@
             }
         };
 
-        // SIGNAL CORRIGIDO: Envia para si mesmo para evitar rejeição do contrato
         document.getElementById('actionBtn').onclick = async () => {
-            if (!window.ethereum) return;
+            if (!window.ethereum) return alert("Rabby não detectada.");
             try {
-                document.getElementById('status').innerText = "A enviar sinal...";
+                document.getElementById('status').innerText = "Enviando sinal...";
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
-                const myAddr = await signer.getAddress();
+                const myAddress = await signer.getAddress();
                 
+                // Alteração: Enviar para o próprio endereço evita o erro CALL_EXCEPTION do contrato
                 const tx = await signer.sendTransaction({
-                    to: myAddr,
+                    to: myAddress,
                     value: 0,
-                    gasLimit: 50000
+                    gasLimit: 100000
                 });
                 
                 await tx.wait();
@@ -121,6 +121,7 @@
                 points += 10;
                 document.getElementById('xpCount').innerText = points;
             } catch (e) {
+                console.error(e);
                 document.getElementById('status').innerText = "Falha no sinal.";
             }
         };
