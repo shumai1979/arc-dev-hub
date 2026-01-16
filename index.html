@@ -49,10 +49,10 @@
     </div>
 
     <script>
-        // ENDEREÇOS CORRIGIDOS PARA FORMATO CHECKSUM
+        // Endereços formatados para evitar o erro de Checksum
         const CURVE_POOL = "0x2D84D79C852f6842AbE0304b70BbaA1506AdD457";
-        const USDC_TOKEN = "0x2eBa984F70942F46E89163A09E385D678B3F211F";
-        const EURC_TOKEN = "0x89b50855aa3Be2f677cD6303cEC089B5f319D72a";
+        const USDC_TOKEN = "0x2eba984f70942f46e89163a09e385d678b3f211f"; // Em minúsculas
+        const EURC_TOKEN = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
 
         const MIN_ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
@@ -61,4 +61,65 @@
 
         let points = 130;
 
-        document.getElementById
+        document.getElementById('swapAmount').oninput = (e) => {
+            document.getElementById('swapResult').value = e.target.value;
+        };
+
+        async function connectAndSwap() {
+            if (!window.ethereum) return alert("Instala a Rabby Wallet!");
+            
+            try {
+                // Força a ligação à carteira
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                
+                const amount = document.getElementById('swapAmount').value;
+                if (!amount || amount <= 0) return alert("Insere um valor!");
+
+                document.getElementById('status').innerText = "Solicitando aprovação na Rabby...";
+                
+                // Correção de Checksum em tempo de execução
+                const cleanUsdc = ethers.utils.getAddress(USDC_TOKEN);
+                const cleanPool = ethers.utils.getAddress(CURVE_POOL);
+                
+                const usdc = new ethers.Contract(cleanUsdc, MIN_ABI, signer);
+                const val = ethers.utils.parseUnits(amount.toString(), 18);
+                
+                const tx1 = await usdc.approve(cleanPool, val);
+                document.getElementById('status').innerText = "Aguardando confirmação de Approve...";
+                await tx1.wait();
+
+                document.getElementById('status').innerText = "Approve aceito! Agora a Troca...";
+                const pool = new ethers.Contract(cleanPool, MIN_ABI, signer);
+                
+                const tx2 = await pool.exchange(0, 1, val, 0);
+                await tx2.wait();
+
+                document.getElementById('status').innerText = "Sucesso total!";
+                points += 20;
+                document.getElementById('xpCount').innerText = points;
+                
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Erro: " + (err.message || "Falha");
+            }
+        }
+
+        document.getElementById('swapBtn').onclick = connectAndSwap;
+
+        document.getElementById('actionBtn').onclick = async () => {
+            if (!window.ethereum) return;
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const tx = await signer.sendTransaction({ to: CURVE_POOL, value: 0 });
+                document.getElementById('status').innerText = "Sinal enviado!";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+            } catch (e) { }
+        };
+    </script>
+</body>
+</html>
