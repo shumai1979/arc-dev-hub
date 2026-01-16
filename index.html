@@ -18,9 +18,7 @@
         .token-tag { color: #38bdf8; font-weight: bold; font-size: 14px; }
         .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.3s; }
         .swap-btn { background: #10b981; margin-top: 5px; }
-        .mint-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: 2px solid #fbbf24; background: transparent; color: #fbbf24; font-weight: bold; width: 100%; margin-bottom: 10px; opacity: 0.4; }
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; height: 14px; }
-        .tx-item { background: #1e293b; padding: 8px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
     </style>
 </head>
 <body>
@@ -47,14 +45,11 @@
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <button id="mintBtn" class="mint-btn">MINT TESTER NFT (200 XP REQ)</button>
-        
         <div id="status">Waiting for interaction...</div>
-        <div id="txList"></div>
     </div>
 
     <script>
-        // ENDEREÇOS REAIS DA REDE ARC TESTNET
+        // ENDEREÇOS CORRIGIDOS PARA FORMATO CHECKSUM
         const CURVE_POOL = "0x2D84D79C852f6842AbE0304b70BbaA1506AdD457";
         const USDC_TOKEN = "0x2eBa984F70942F46E89163A09E385D678B3F211F";
         const EURC_TOKEN = "0x89b50855aa3Be2f677cD6303cEC089B5f319D72a";
@@ -66,59 +61,4 @@
 
         let points = 130;
 
-        document.getElementById('swapAmount').oninput = (e) => {
-            document.getElementById('swapResult').value = e.target.value;
-        };
-
-        async function connectAndSwap() {
-            if (!window.ethereum) return alert("Instala a Rabby Wallet!");
-            
-            try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                const signer = provider.getSigner();
-                const amount = document.getElementById('swapAmount').value;
-                if (!amount || amount <= 0) return alert("Insere um valor!");
-
-                document.getElementById('status').innerText = "Passo 1/2: Aprovar USDC...";
-                const usdc = new ethers.Contract(USDC_TOKEN, MIN_ABI, signer);
-                const val = ethers.utils.parseUnits(amount, 18);
-                
-                // 1. APROVAR
-                const tx1 = await usdc.approve(CURVE_POOL, val);
-                await tx1.wait();
-
-                document.getElementById('status').innerText = "Passo 2/2: Trocar no Curve...";
-                const pool = new ethers.Contract(CURVE_POOL, MIN_ABI, signer);
-                
-                // 2. TROCAR (i=0 USDC, j=1 EURC)
-                const tx2 = await pool.exchange(0, 1, val, 0);
-                document.getElementById('status').innerText = "A processar na rede...";
-                await tx2.wait();
-
-                document.getElementById('status').innerText = "Swap com sucesso!";
-                points += 20;
-                document.getElementById('xpCount').innerText = points;
-                
-            } catch (err) {
-                console.error(err);
-                document.getElementById('status').innerText = "Erro na transação.";
-            }
-        }
-
-        document.getElementById('swapBtn').onclick = connectAndSwap;
-
-        document.getElementById('actionBtn').onclick = async () => {
-            if (!window.ethereum) return;
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const signer = provider.getSigner();
-            try {
-                const tx = await signer.sendTransaction({ to: CURVE_POOL, value: 0 });
-                document.getElementById('status').innerText = "Signal enviado!";
-                points += 10;
-                document.getElementById('xpCount').innerText = points;
-            } catch (e) { }
-        };
-    </script>
-</body>
-</html>
+        document.getElementById
