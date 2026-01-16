@@ -25,11 +25,7 @@
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; min-height: 14px; }
         .nft-container { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; }
         .final-badge { width: 220px; border-radius: 15px; border: 3px solid #fbbf24; animation: badgeGlow 2s infinite ease-in-out; }
-        @keyframes badgeGlow {
-            0% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
-            50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.8); }
-            100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); }
-        }
+        @keyframes badgeGlow { 0% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } 50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.8); } 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } }
     </style>
 </head>
 <body>
@@ -60,7 +56,7 @@
         </div>
 
         <button id="actionBtn" class="main-btn" style="display:none; background: #6366f1;">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Please connect your wallet to start.</div>
+        <div id="status">Ready to connect.</div>
 
         <div id="nftSection" class="nft-container">
             <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 10px;">🏆 ARC PIONEER BADGE UNLOCKED 🏆</div>
@@ -72,7 +68,6 @@
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const USDC_ADDR = "0x2eba984f70942f46e89163a09e385d678b3f211f";
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-        const DECIMALS = 6; 
         const ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256)",
@@ -90,32 +85,37 @@
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, provider);
                 const eurc = new ethers.Contract(EURC_ADDR, ABI, provider);
-                const [bUSDC, bEURC] = await Promise.all([usdc.balanceOf(walletAddress), eurc.balanceOf(walletAddress)]);
+                
+                const [bUSDC, bEURC] = await Promise.all([
+                    usdc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0)),
+                    eurc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0))
+                ]);
+
                 const valU = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
                 const valE = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
+
                 document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? valE : valU} ${isReversed ? 'EURC' : 'USDC'}`;
                 document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? valU : valE} ${isReversed ? 'USDC' : 'EURC'}`;
-                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
-            } catch (e) { console.log("Sync..."); }
+                
+                // Correção do NFT: verifica sempre que o saldo atualiza
+                if (points >= 200) {
+                    document.getElementById('nftSection').style.display = 'block';
+                }
+            } catch (e) { console.error("Balance sync error"); }
         }
 
         document.getElementById('connectBtn').onclick = async () => {
-            if (typeof window.ethereum === 'undefined') return alert("Please install Rabby or MetaMask!");
             try {
-                // MÉTODO DIRETO PARA FORÇAR O POP-UP
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 walletAddress = accounts[0];
-                
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('swapContainer').classList.add('active');
                 document.getElementById('actionBtn').style.display = 'block';
-                document.getElementById('status').innerText = "Wallet Linked!";
+                document.getElementById('status').innerText = "Wallet Connected!";
                 
-                updateBalances();
-                setInterval(updateBalances, 5000);
-            } catch (e) {
-                document.getElementById('status').innerText = "Connection rejected.";
-            }
+                await updateBalances();
+                setInterval(updateBalances, 4000); // Sincroniza a cada 4 segundos
+            } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
         };
 
         document.getElementById('swapAmount').oninput = async () => {
@@ -124,9 +124,9 @@
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
-                const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
+                const dx = ethers.utils.parseUnits(amount.toString(), 6);
                 const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
-                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
+                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
             } catch (e) { document.getElementById('swapResult').value = "0.0"; }
         };
 
@@ -144,15 +144,19 @@
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
-                const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, DECIMALS);
+                const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, 6);
                 const token = new ethers.Contract(isReversed ? EURC_ADDR : USDC_ADDR, ABI, signer);
+                
                 document.getElementById('status').innerText = "Approving...";
                 await (await token.approve(POOL_ADDR, val)).wait();
+                
                 document.getElementById('status').innerText = "Exchanging...";
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
                 await (await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 1000000 })).wait();
+                
                 document.getElementById('status').innerText = "Swap Success!";
-                points += 20; document.getElementById('xpCount').innerText = points;
+                points += 20;
+                document.getElementById('xpCount').innerText = points;
                 updateBalances();
             } catch (e) { document.getElementById('status').innerText = "Swap failed."; }
         };
@@ -164,7 +168,8 @@
                 const tx = await signer.sendTransaction({ to: walletAddress, value: 0, gasLimit: 100000 });
                 await tx.wait();
                 document.getElementById('status').innerText = "Signal Accepted!";
-                points += 10; document.getElementById('xpCount').innerText = points;
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
                 updateBalances();
             } catch (e) { document.getElementById('status').innerText = "Signal error."; }
         };
