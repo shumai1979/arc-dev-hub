@@ -68,7 +68,13 @@
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const USDC_ADDR = "0x2eba984f70942f46e89163a09e385d678b3f211f";
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-        const ABI = ["function approve(address s, uint256 a) public returns (bool)", "function exchange(int128 i, int128 j, uint256 dx, uint256 min) external returns (uint256)", "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)", "function balanceOf(address a) public view returns (uint256)"];
+        const ABI = [
+            "function approve(address s, uint256 a) public returns (bool)",
+            "function exchange(int128 i, int128 j, uint256 dx, uint256 min) external returns (uint256)",
+            "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)",
+            "function balanceOf(address a) public view returns (uint256)",
+            "function decimals() public view returns (uint8)"
+        ];
 
         let points = 0;
         let walletAddress = "";
@@ -88,12 +94,16 @@
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, provider);
                 const eurc = new ethers.Contract(EURC_ADDR, ABI, provider);
                 
-                // Tentativa de leitura forçada de USDC
-                const bUSDC = await usdc.balanceOf(walletAddress);
-                const bEURC = await eurc.balanceOf(walletAddress);
+                // Pegar decimais e saldo em paralelo para ser mais rápido
+                const [decU, decE, bUSDC, bEURC] = await Promise.all([
+                    usdc.decimals().catch(() => 6),
+                    eurc.decimals().catch(() => 6),
+                    usdc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0)),
+                    eurc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0))
+                ]);
 
-                const fUSDC = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
-                const fEURC = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
+                const fUSDC = parseFloat(ethers.utils.formatUnits(bUSDC, decU)).toFixed(2);
+                const fEURC = parseFloat(ethers.utils.formatUnits(bEURC, decE)).toFixed(2);
 
                 document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
                 document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
@@ -105,7 +115,6 @@
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 walletAddress = accounts[0];
                 
-                // Carregar XP da memória do navegador para esta carteira específica
                 const savedXP = localStorage.getItem('arc_xp_' + walletAddress);
                 points = savedXP ? parseInt(savedXP) : 0;
                 document.getElementById('xpCount').innerText = points;
@@ -114,13 +123,14 @@
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('swapContainer').classList.add('active');
                 document.getElementById('actionBtn').style.display = 'block';
-                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6) + "...";
+                document.getElementById('status').innerText = "Wallet Connected";
                 
                 await updateBalances();
                 setInterval(updateBalances, 5000);
             } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
         };
 
+        // ... Resto das funções de Swap e Signal mantidas iguais para segurança ...
         document.getElementById('swapAmount').oninput = async () => {
             const amount = document.getElementById('swapAmount').value;
             if (!amount || amount <= 0) return;
