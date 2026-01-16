@@ -17,7 +17,8 @@
         .swap-input-group { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
         .swap-input { background: transparent; border: none; color: white; font-size: 18px; width: 60%; outline: none; }
         .token-tag { color: #38bdf8; font-weight: bold; font-size: 14px; }
-        .balance-info { font-size: 10px; color: #94a3b8; display: block; margin-top: -5px; margin-bottom: 5px; font-family: monospace; }
+        /* SALDO AGORA EM AZUL E NEGRITO PARA MELHOR VISUALIZAÇÃO */
+        .balance-info { font-size: 11px; color: #38bdf8; display: block; margin-top: -5px; margin-bottom: 5px; font-family: monospace; font-weight: bold; }
         .switch-btn { cursor: pointer; color: #38bdf8; font-size: 20px; text-align: center; margin: 5px 0; transition: 0.3s; user-select: none; }
         .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.2s; }
         #connectBtn { background: #f59e0b; margin-bottom: 20px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
@@ -82,6 +83,7 @@
         async function updateBalances() {
             if (!window.ethereum || !walletAddress) return;
             try {
+                // Criamos um novo provider a cada atualização para forçar a leitura real
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const usdc = new ethers.Contract(USDC_ADDR, ABI, provider);
                 const eurc = new ethers.Contract(EURC_ADDR, ABI, provider);
@@ -91,13 +93,12 @@
                     eurc.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0))
                 ]);
 
-                const valU = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
-                const valE = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
+                const fUSDC = parseFloat(ethers.utils.formatUnits(bUSDC, 6)).toFixed(2);
+                const fEURC = parseFloat(ethers.utils.formatUnits(bEURC, 6)).toFixed(2);
 
-                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? valE : valU} ${isReversed ? 'EURC' : 'USDC'}`;
-                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? valU : valE} ${isReversed ? 'USDC' : 'EURC'}`;
+                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
+                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
                 
-                // Correção do NFT: verifica sempre que o saldo atualiza
                 if (points >= 200) {
                     document.getElementById('nftSection').style.display = 'block';
                 }
@@ -114,7 +115,7 @@
                 document.getElementById('status').innerText = "Wallet Connected!";
                 
                 await updateBalances();
-                setInterval(updateBalances, 4000); // Sincroniza a cada 4 segundos
+                setInterval(updateBalances, 3000); // Mais rápido (3 seg) para feedback imediato
             } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
         };
 
@@ -135,6 +136,7 @@
             document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
             document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
             document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
+            document.getElementById('labelTo').innerText = `PARA (${isReversed ? 'USDC' : 'EURC'})`;
             document.getElementById('swapAmount').value = "";
             document.getElementById('swapResult').value = "";
             updateBalances();
