@@ -25,12 +25,11 @@
         .switch-btn:hover { transform: rotate(180deg) scale(1.2); }
         
         .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.2s; }
-        #connectBtn { background: #f59e0b; margin-bottom: 20px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
+        #connectBtn { background: #f59e0b; margin-bottom: 20px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); display: block; }
         .swap-btn { background: #10b981; }
         
         #status { margin-top: 10px; font-size: 11px; color: #94a3b8; min-height: 14px; }
         
-        /* Secção do NFT e Badge */
         .nft-container { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; animation: slideUp 0.5s ease-out; }
         @keyframes badgeGlow {
             0% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); border-color: #fbbf24; }
@@ -59,7 +58,7 @@
             </div>
             <span id="balanceFrom" class="balance-info">Balance: --</span>
 
-            <div class="switch-btn" id="reverseBtn" title="Inverter Tokens">⇅</div>
+            <div class="switch-btn" id="reverseBtn">⇅</div>
 
             <span id="labelTo" style="font-size: 9px; color: #94a3b8;">PARA (EURC)</span>
             <div class="swap-input-group">
@@ -72,7 +71,7 @@
         </div>
 
         <button id="actionBtn" class="main-btn" style="display:none; background: #6366f1;">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Please connect your wallet.</div>
+        <div id="status">Please connect your wallet to start.</div>
 
         <div id="nftSection" class="nft-container">
             <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 10px;">🏆 ARC PIONEER BADGE UNLOCKED 🏆</div>
@@ -113,8 +112,8 @@
                     eurcContract.balanceOf(userAddr)
                 ]);
 
-                const fUSDC = parseFloat(ethers.utils.formatUnits(balUSDC, 6)).toLocaleString(undefined, {minimumFractionDigits: 2});
-                const fEURC = parseFloat(ethers.utils.formatUnits(balEURC, 6)).toLocaleString(undefined, {minimumFractionDigits: 2});
+                const fUSDC = parseFloat(ethers.utils.formatUnits(balUSDC, 6)).toFixed(2);
+                const fEURC = parseFloat(ethers.utils.formatUnits(balEURC, 6)).toFixed(2);
 
                 if (!isReversed) {
                     document.getElementById('balanceFrom').innerText = `Balance: ${fUSDC} USDC`;
@@ -132,4 +131,52 @@
             }
         }
 
-        // Loop de atualização automática (
+        // FUNÇÃO DE CONEXÃO CORRIGIDA
+        document.getElementById('connectBtn').onclick = async () => {
+            if (!window.ethereum) return alert("Wallet not detected. Please install Rabby or MetaMask.");
+            try {
+                // Solicita contas explicitamente
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (accounts.length > 0) {
+                    walletConnected = true;
+                    document.getElementById('connectBtn').style.display = 'none';
+                    document.getElementById('swapContainer').classList.add('active');
+                    document.getElementById('actionBtn').style.display = 'block';
+                    document.getElementById('status').innerText = "Wallet Synced!";
+                    
+                    // Inicia o loop de balanço APENAS após conectar
+                    updateBalances();
+                    setInterval(updateBalances, 5000);
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Link failed. Try again.";
+            }
+        };
+
+        document.getElementById('swapAmount').oninput = async () => {
+            const amount = document.getElementById('swapAmount').value;
+            if (!amount || amount <= 0) { document.getElementById('swapResult').value = ""; return; }
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
+                const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
+                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
+                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
+            } catch (e) { document.getElementById('swapResult').value = "0.0"; }
+        };
+
+        document.getElementById('reverseBtn').onclick = () => {
+            isReversed = !isReversed;
+            document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
+            document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
+            document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
+            document.getElementById('swapAmount').value = "";
+            document.getElementById('swapResult').value = "";
+            updateBalances();
+        };
+
+        document.getElementById('swapBtn').onclick = async () => {
+            try {
+                document.getElementById('status').innerText = "Approving...";
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
