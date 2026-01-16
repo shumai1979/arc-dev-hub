@@ -26,7 +26,7 @@
         <h1>ARC Interaction Hub</h1>
         <div class="badge-container">
             <div class="status-badge">NETWORK: ARC TESTNET</div>
-            <div class="xp-badge">TOTAL XP: <span id="xpCount">170</span></div>
+            <div class="xp-badge">TOTAL XP: <span id="xpCount">130</span></div>
         </div>
 
         <div class="swap-box">
@@ -45,11 +45,11 @@
         </div>
 
         <button id="actionBtn" class="main-btn">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <div id="status">Swap working! Ready for Signal...</div>
+        <div id="status">Waiting for interaction...</div>
     </div>
 
     <script>
-        // Mantemos os mesmos endereços que fizeram o swap funcionar
+        // Endereços em minúsculas para contornar o erro de checksum do ethers.js
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const USDC_ADDR = "0x2eba984f70942f46e89163a09e385d678b3f211f";
         const DECIMALS = 6; 
@@ -57,4 +57,70 @@
         const ABI = [
             "function approve(address spender, uint256 amount) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 dx, uint256 min_dy) external returns (uint256)",
-            "function get_dy(int128 i, int1
+            "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)"
+        ];
+
+        let points = 130;
+
+        async function updatePrice() {
+            const amount = document.getElementById('swapAmount').value;
+            if (!amount || amount <= 0 || !window.ethereum) return;
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
+                const dx = ethers.utils.parseUnits(amount.toString(), DECIMALS);
+                const dy = await pool.get_dy(0, 1, dx);
+                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, DECIMALS);
+            } catch (e) { 
+                console.log("A aguardar pool..."); 
+            }
+        }
+
+        document.getElementById('swapAmount').oninput = updatePrice;
+
+        document.getElementById('swapBtn').onclick = async () => {
+            if (!window.ethereum) return alert("Rabby não detetada.");
+            try {
+                document.getElementById('status').innerText = "Processando...";
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                
+                const val = ethers.utils.parseUnits(document.getElementById('swapAmount').value, DECIMALS);
+                
+                // 1. Approve
+                document.getElementById('status').innerText = "1/2: Autorizando USDC...";
+                const usdc = new ethers.Contract(USDC_ADDR, ABI, signer);
+                const tx1 = await usdc.approve(POOL_ADDR, val);
+                await tx1.wait();
+
+                // 2. Swap
+                document.getElementById('status').innerText = "2/2: Confirmando Swap...";
+                const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
+                const tx2 = await pool.exchange(0, 1, val, 0, { gasLimit: 1000000 });
+                await tx2.wait();
+
+                document.getElementById('status').innerText = "Sucesso!";
+                points += 20;
+                document.getElementById('xpCount').innerText = points;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Erro. Verifica o saldo de gas.";
+            }
+        };
+
+        document.getElementById('actionBtn').onclick = async () => {
+            if (!window.ethereum) return;
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                await signer.sendTransaction({ to: POOL_ADDR, value: 0 });
+                document.getElementById('status').innerText = "Signal enviado!";
+                points += 10;
+                document.getElementById('xpCount').innerText = points;
+            } catch (e) {}
+        };
+    </script>
+</body>
+</html>
