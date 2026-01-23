@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Dev Hub | Dashboard</title>
+    <title>ARC Developer Hub | Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -12,6 +12,7 @@
             --card-bg: #0f172a;
             --primary: #38bdf8;
             --accent: #7c3aed;
+            --text-dim: #94a3b8;
         }
 
         body { 
@@ -19,11 +20,10 @@
             background-color: var(--bg); 
             color: white; 
             margin: 0; 
-            display: flex; 
-            flex-direction: column;
             min-height: 100vh;
         }
 
+        /* Layout em Dashboard */
         header {
             background: var(--card-bg);
             padding: 15px 30px;
@@ -33,141 +33,121 @@
             border-bottom: 1px solid #1e293b;
         }
 
-        .dashboard {
+        .dashboard-container {
             display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 20px;
-            padding: 20px;
-            max-width: 1100px;
-            margin: 0 auto;
-            width: 100%;
+            grid-template-columns: 300px 1fr;
+            gap: 25px;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
         }
 
-        .sidebar { display: flex; flex-direction: column; gap: 15px; }
+        /* Painel Lateral (Status e XP) */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
 
         .stat-card {
             background: var(--card-bg);
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 16px;
             border: 1px solid #1e293b;
             text-align: center;
         }
 
-        .xp-val { font-size: 32px; font-weight: bold; color: var(--accent); display: block; }
+        .xp-display { font-size: 36px; font-weight: bold; color: var(--accent); margin: 10px 0; }
+        .label-mini { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
 
-        .main-content {
+        /* Painel Principal (Swap) */
+        .main-panel {
             background: var(--card-bg);
             padding: 30px;
             border-radius: 20px;
             border: 2px solid var(--primary);
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.1);
         }
 
-        .swap-box { opacity: 0.4; pointer-events: none; transition: 0.3s; max-width: 420px; margin: 0 auto; }
+        .swap-box { 
+            max-width: 450px; 
+            margin: 0 auto; 
+            opacity: 0.4; 
+            pointer-events: none; 
+            transition: 0.4s; 
+        }
         .swap-box.active { opacity: 1; pointer-events: auto; }
 
-        .token-input-group {
+        .input-section {
             background: #1e293b;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 18px;
+            border-radius: 14px;
             margin: 10px 0;
             border: 1px solid #334155;
-            text-align: left;
         }
 
         .swap-input { background: transparent; border: none; color: white; font-size: 22px; width: 60%; outline: none; }
-        .token-tag { color: var(--primary); font-weight: bold; float: right; font-size: 16px; }
-        .balance-info { font-size: 11px; color: var(--primary); font-family: monospace; display: block; margin-top: 5px; }
+        .token-tag { color: var(--primary); font-weight: bold; float: right; }
+        .balance-info { font-size: 11px; color: var(--primary); font-family: monospace; display: block; margin-top: 8px; }
 
-        .main-btn { 
-            padding: 14px; 
-            border-radius: 10px; 
-            border: none; 
-            font-weight: bold; 
-            cursor: pointer; 
-            width: 100%; 
-            transition: 0.2s; 
-            margin-top: 10px; 
+        .switch-btn { 
+            cursor: pointer; color: var(--primary); font-size: 24px; 
+            text-align: center; margin: -10px 0; position: relative; z-index: 5;
+            transition: 0.2s;
+        }
+        .switch-btn:hover { transform: scale(1.2); }
+
+        /* Botões */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
         }
 
-        #connectBtn { background: #f59e0b; color: white; font-size: 16px; }
-        .swap-btn { background: #10b981; color: white; }
-        .action-btn { background: #6366f1; color: white; }
+        #connectBtn { background: #f59e0b; color: white; font-size: 16px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); }
+        .swap-btn { background: #10b981; color: white; font-size: 15px; }
+        .signal-btn { background: #6366f1; color: white; }
 
-        #status { margin-top: 15px; font-size: 12px; color: #94a3b8; text-align: center; min-height: 18px; }
+        #status { margin-top: 15px; font-size: 12px; color: var(--text-dim); text-align: center; font-family: monospace; }
         .tx-link { display: block; margin-top: 10px; font-size: 11px; color: var(--primary); text-decoration: none; text-align: center; }
-        
-        .final-badge { width: 100%; border-radius: 10px; border: 2px solid gold; margin-top: 10px; }
+
+        /* Badge */
+        .nft-panel { margin-top: 20px; display: none; }
+        .final-badge { width: 100%; border-radius: 12px; border: 2px solid #fbbf24; }
+
+        @media (max-width: 850px) {
+            .dashboard-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="color: var(--primary); font-weight: bold; letter-spacing: 1px;">ARC DEVELOPER HUB</div>
-    <div id="walletDisplay" style="font-size: 12px; color: #94a3b8; font-family: monospace;">Not Connected</div>
+    <div style="color: var(--primary); font-weight: bold; font-size: 18px;">ARC DEVELOPER HUB</div>
+    <div id="walletDisplay" style="font-size: 12px; color: var(--text-dim); font-family: monospace;">Not Connected</div>
 </header>
 
-<div class="dashboard">
+<div class="dashboard-container">
     <div class="sidebar">
         <div class="stat-card">
-            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Total XP</span>
-            <span class="xp-val" id="xpCount">0</span>
+            <div class="label-mini">Developer Prestige</div>
+            <div class="xp-display" id="xpCount">0</div>
+            <div class="label-mini">Total XP Points</div>
         </div>
-        
-        <button id="actionBtn" class="main-btn action-btn" style="display:none;">SEND SIGNAL (+10 XP)</button>
 
-        <div id="nftSection" class="stat-card" style="display:none;">
-            <div style="color: gold; font-size: 11px; font-weight: bold; margin-bottom: 8px;">🏆 ARC PIONEER</div>
-            <img src="badge.jpg" class="final-badge">
+        <button id="actionBtn" class="btn signal-btn" style="display:none;">SEND DEV SIGNAL (+10 XP)</button>
+
+        <div id="nftSection" class="nft-panel">
+            <div class="stat-card">
+                <div style="color: #fbbf24; font-size: 12px; font-weight: bold; margin-bottom: 10px;">🏆 PIONEER STATUS</div>
+                <img src="badge.jpg" class="final-badge" alt="Badge">
+            </div>
         </div>
     </div>
 
-    <div class="main-content">
-        <button id="connectBtn" class="main-btn">CONNECT WALLET</button>
+    <div class="main-panel">
+        <button id="connectBtn" class="btn">CONNECT WALLET TO START</button>
 
         <div class="swap-box" id="swapContainer">
-            <div class="token-input-group">
-                <span id="labelFrom" style="font-size: 10px; color: #94a3b8;">DE (USDC)</span>
-                <div style="margin-top: 5px;">
-                    <input type="number" id="swapAmount" class="swap-input" placeholder="0.0">
-                    <span id="tokenFrom" class="token-tag">USDC</span>
-                </div>
-                <span id="balanceFrom" class="balance-info">Balance: --</span>
-            </div>
-
-            <div id="reverseBtn" style="cursor:pointer; text-align:center; font-size:24px; color:var(--primary); margin: 5px 0;">⇅</div>
-
-            <div class="token-input-group">
-                <span id="labelTo" style="font-size: 10px; color: #94a3b8;">PARA (EURC)</span>
-                <div style="margin-top: 5px;">
-                    <input type="text" id="swapResult" class="swap-input" readonly placeholder="0.0">
-                    <span id="tokenTo" class="token-tag">EURC</span>
-                </div>
-                <span id="balanceTo" class="balance-info">Balance: --</span>
-            </div>
-
-            <button id="swapBtn" class="main-btn swap-btn">EXECUTE TOKEN SWAP</button>
-            <div id="status">Ready to connect.</div>
-            <a id="arcscanLink" class="tx-link" href="#" target="_blank" style="display:none;">View on Arcscan ↗</a>
-        </div>
-    </div>
-</div>
-
-<script>
-    // LÓGICA ORIGINAL PRESERVADA
-    const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
-    const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-    const ABI = [
-        "function approve(address s, uint256 a) public returns (bool)",
-        "function exchange(int128 i, int128 j, uint256 dx, uint256 m) external returns (uint256)",
-        "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)",
-        "function balanceOf(address a) public view returns (uint256)",
-        "function allowance(address owner, address spender) public view returns (uint256)"
-    ];
-
-    let points = 0;
-    let isReversed = false;
-    let walletAddress = "";
-
-    function updateExplorer(hash) {
-        const link = document.getElementById('arcscanLink
+            <div class="label-mini" style="margin-bottom: 15px; color: var(--primary);">Liquidity Exchange</div>
