@@ -78,6 +78,8 @@
     <script>
         const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
         const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
+        const USDC_ADDR = "0x3600000000000000000000000000000000000000"; // Endereço contrato USDC
+
         const ABI = [
             "function approve(address s, uint256 a) public returns (bool)",
             "function exchange(int128 i, int128 j, uint256 dx, uint256 m) external returns (uint256)",
@@ -111,8 +113,6 @@
             if (!window.ethereum || !walletAddress) return;
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                
-                // Na Arc Testnet, o saldo Nativo (Gas) é USDC
                 const balance = await provider.getBalance(walletAddress);
                 const fUSDC = parseFloat(ethers.utils.formatEther(balance)).toFixed(2);
                 
@@ -130,18 +130,14 @@
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 walletAddress = accounts[0];
-                
                 const saved = localStorage.getItem('arc_xp_' + walletAddress);
                 points = saved ? parseInt(saved) : 0;
                 document.getElementById('xpCount').innerText = points;
-                
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('swapContainer').classList.add('active');
                 document.getElementById('actionBtn').style.display = 'block';
                 document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
-                
                 if (points >= 200) document.getElementById('nftSection').style.display = 'block';
-                
                 await updateBalances();
                 setInterval(updateBalances, 5000);
             } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
@@ -153,7 +149,6 @@
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
-                // Ambos usam 6 decimais (USDC/EURC)
                 const dx = ethers.utils.parseUnits(val.toString(), 6);
                 const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
                 document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
@@ -174,42 +169,35 @@
         document.getElementById('swapBtn').onclick = async () => {
             const amount = document.getElementById('swapAmount').value;
             if (!amount || amount <= 0) return;
-
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
                 const val = ethers.utils.parseUnits(amount, 6);
                 const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
 
-                // Circle 2026: Pre-flight gas check (USDC)
-                const gasBal = await provider.getBalance(walletAddress);
-                if (gasBal.lt(ethers.utils.parseEther("0.01"))) {
-                    document.getElementById('status').innerText = "Low USDC for Gas!";
-                    return;
-                }
-
-                if (isReversed) {
-                    const eurc = new ethers.Contract(EURC_ADDR, ABI, signer);
-                    document.getElementById('status').innerText = "Checking EURC Allowance...";
-                    const allowance = await eurc.allowance(walletAddress, POOL_ADDR);
-                    if (allowance.lt(val)) {
-                        document.getElementById('status').innerText = "Please Approve EURC...";
-                        const appTx = await eurc.approve(POOL_ADDR, ethers.constants.MaxUint256);
-                        await appTx.wait();
-                    }
-                }
-
-                document.getElementById('status').innerText = "Executing Swap on ARC...";
-                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 500000 });
-                updateExplorer(tx.hash);
+                // --- CORREÇÃO PARA CONTAS SECUNDÁRIAS ---
+                const tokenToApprove = isReversed ? EURC_ADDR : USDC_ADDR;
+                const tokenContract = new ethers.Contract(tokenToApprove, ABI, signer);
                 
+                document.getElementById('status').innerText = "Checking permission...";
+                const allowance = await tokenContract.allowance(walletAddress, POOL_ADDR);
+                
+                if (allowance.lt(val)) {
+                    document.getElementById('status').innerText = "Approving token (First time)...";
+                    const appTx = await tokenContract.approve(POOL_ADDR, ethers.constants.MaxUint256);
+                    await appTx.wait();
+                    document.getElementById('status').innerText = "Approved! Swapping...";
+                }
+
+                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 1000000 });
+                updateExplorer(tx.hash);
                 await tx.wait();
                 document.getElementById('status').innerText = "Swap Complete! +20 XP";
                 syncXP(20);
                 updateBalances();
             } catch (e) { 
                 console.error(e);
-                document.getElementById('status').innerText = "Swap failed."; 
+                document.getElementById('status').innerText = "Swap failed. Check console."; 
             }
         };
 
@@ -217,7 +205,6 @@
             try {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
-                document.getElementById('status').innerText = "Sending Signal...";
                 const tx = await signer.sendTransaction({ to: walletAddress, value: 0 });
                 updateExplorer(tx.hash);
                 await tx.wait();
