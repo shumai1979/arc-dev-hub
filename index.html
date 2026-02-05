@@ -3,216 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Developer Hub | Shumai1979</title>
+    <title>ARC Hub V2.6 | Final Pro Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { font-family: 'Inter', Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #020617; color: white; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background-color: #0f172a; padding: 25px; border-radius: 20px; display: inline-block; width: 100%; max-width: 420px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
-        h1 { color: #38bdf8; font-size: 22px; margin-bottom: 5px; }
-        .sub-h { font-size: 10px; color: #94a3b8; margin-bottom: 20px; letter-spacing: 1px; }
-        .badge-container { margin-bottom: 15px; display: flex; justify-content: center; gap: 10px; }
-        .status-badge { background: #10b981; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
-        .xp-badge { background: #7c3aed; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: bold; }
-        .swap-box { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #334155; text-align: left; opacity: 0.4; pointer-events: none; transition: 0.3s; }
-        .swap-box.active { opacity: 1; pointer-events: auto; }
-        .swap-input-group { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
-        .swap-input { background: transparent; border: none; color: white; font-size: 18px; width: 60%; outline: none; }
-        .token-tag { color: #38bdf8; font-weight: bold; font-size: 14px; }
-        .balance-info { font-size: 11px; color: #38bdf8; display: block; margin-top: -5px; margin-bottom: 5px; font-family: monospace; font-weight: bold; }
-        .switch-btn { cursor: pointer; color: #38bdf8; font-size: 20px; text-align: center; margin: 5px 0; transition: 0.3s; user-select: none; }
-        .main-btn { padding: 12px; font-size: 14px; cursor: pointer; border-radius: 10px; border: none; background: #3b82f6; color: white; font-weight: bold; width: 100%; margin-bottom: 8px; transition: 0.2s; }
-        #connectBtn { background: #f59e0b; margin-bottom: 20px; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
-        .swap-btn { background: #10b981; }
-        #status { margin-top: 10px; font-size: 11px; color: #94a3b8; min-height: 14px; }
-        .tx-link { display: block; margin-top: 8px; font-size: 10px; color: #38bdf8; text-decoration: none; opacity: 0.8; }
-        .nft-container { margin-top: 20px; display: none; border-top: 1px solid #334155; padding-top: 15px; }
-        .final-badge { width: 220px; border-radius: 15px; border: 3px solid #fbbf24; animation: badgeGlow 2s infinite ease-in-out; }
-        @keyframes badgeGlow { 0% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } 50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.8); } 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.4); } }
+        :root { --primary: #38bdf8; --secondary: #6366f1; --bg: #020617; --card: #0f172a; --green: #10b981; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; min-height: 100vh; }
+        .dashboard { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        header { grid-column: 1 / -1; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 20px; }
+        .card { background: var(--card); padding: 25px; border-radius: 20px; border: 2px solid var(--primary); position: relative; }
+        .input-group { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; }
+        
+        select { 
+            background: #0f172a; border: 1px solid var(--primary); color: white; 
+            font-size: 14px; width: 100%; outline: none; cursor: pointer; 
+            padding: 10px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s;
+        }
+        select:focus { box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        input { background: transparent; border: none; color: white; font-size: 18px; width: 100%; outline: none; }
+        .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        .balance { font-size: 10px; color: var(--primary); text-align: right; font-family: monospace; font-weight: bold; }
+        
+        /* Botão Bidirecional */
+        .swap-divider { display: flex; justify-content: center; margin: -15px 0 -15px 0; z-index: 10; position: relative; }
+        .reverse-btn { 
+            background: #1e293b; border: 2px solid var(--primary); color: var(--primary); 
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            transition: 0.3s;
+        }
+        .reverse-btn:hover { background: var(--primary); color: white; transform: rotate(180deg); }
+
+        .main-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; color: white; margin-top: 10px; transition: 0.2s; }
+        .main-btn:active { transform: scale(0.98); }
+        .btn-green { background: var(--green); } .btn-blue { background: #3b82f6; } .btn-orange { background: #f59e0b; }
+        
+        #history { grid-column: 1 / -1; margin-top: 30px; background: #0f172a; border-radius: 15px; padding: 20px; border: 1px solid #334155; }
+        .hist-item { font-size: 11px; padding: 8px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; }
+        #status { grid-column: 1 / -1; text-align: center; font-size: 11px; color: #38bdf8; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>ARC Interaction Hub</h1>
-        <div class="sub-h">CIRCLE BRIDGE KIT v1.4.0 COMPATIBLE</div>
+
+<div class="dashboard">
+    <header>
+        <h1>ARC Interaction Hub V2.6</h1>
+        <button id="connectBtn" class="main-btn btn-orange" style="max-width: 250px;">CONNECT WALLET</button>
+    </header>
+
+    <div class="card" id="swapUI" style="opacity: 0.4; pointer-events: none;">
+        <h2>🔄 SWAP</h2>
+        <div class="input-group">
+            <span class="label">Pay with</span>
+            <select id="tokenFrom">
+                <option value="0">USDC</option>
+                <option value="1">EURC</option>
+            </select>
+            <input type="number" id="swapAmount" placeholder="0.0" min="0">
+            <div class="balance" id="balFrom">Loading balance...</div>
+        </div>
+
+        <div class="swap-divider">
+            <button class="reverse-btn" id="reverseSwap" title="Switch tokens">⇅</button>
+        </div>
         
-        <div class="badge-container">
-            <div class="status-badge">NETWORK: ARC TESTNET</div>
-            <div class="xp-badge">TOTAL XP: <span id="xpCount">0</span></div>
+        <div class="input-group" style="margin-top: 10px;">
+            <span class="label">Receive</span>
+            <select id="tokenTo">
+                <option value="1">EURC</option>
+                <option value="0">USDC</option>
+            </select>
+            <input type="text" id="swapResult" readonly placeholder="0.0">
+            <div class="balance" id="balTo">Loading balance...</div>
         </div>
-
-        <button id="connectBtn" class="main-btn">CONNECT WALLET</button>
-
-        <div class="swap-box" id="swapContainer">
-            <span id="labelFrom" style="font-size: 9px; color: #94a3b8;">DE (USDC)</span>
-            <div class="swap-input-group">
-                <input type="number" id="swapAmount" class="swap-input" placeholder="0.0">
-                <span id="tokenFrom" class="token-tag">USDC</span>
-            </div>
-            <span id="balanceFrom" class="balance-info">Balance: --</span>
-            
-            <div class="switch-btn" id="reverseBtn">⇅</div>
-            
-            <span id="labelTo" style="font-size: 9px; color: #94a3b8;">PARA (EURC)</span>
-            <div class="swap-input-group">
-                <input type="text" id="swapResult" class="swap-input" readonly placeholder="0.0">
-                <span id="tokenTo" class="token-tag">EURC</span>
-            </div>
-            <span id="balanceTo" class="balance-info">Balance: --</span>
-            
-            <button id="swapBtn" class="main-btn swap-btn">EXECUTE TOKEN SWAP</button>
-        </div>
-
-        <button id="actionBtn" class="main-btn" style="display:none; background: #6366f1;">SEND DEVELOPER SIGNAL (+10 XP)</button>
-        <a id="arcscanLink" class="tx-link" href="#" target="_blank" style="display:none;">Last Transaction on Arcscan ↗</a>
-        
-        <div id="status">Ready to connect.</div>
-
-        <div id="nftSection" class="nft-container">
-            <div style="color: #fbbf24; font-size: 13px; font-weight: bold; margin-bottom: 5px;">🏆 ARC PIONEER BADGE UNLOCKED 🏆</div>
-            <div style="font-size: 9px; color: #94a3b8; margin-bottom: 10px;">Verified Circle Pioneer 2026</div>
-            <img src="badge.jpg" class="final-badge" alt="ARC Pioneer Badge">
-        </div>
+        <button id="swapBtn" class="main-btn btn-green">SWAP</button>
     </div>
 
-    <script>
-        const POOL_ADDR = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
-        const EURC_ADDR = "0x89b50855aa3be2f677cd6303cec089b5f319d72a";
-        const USDC_ADDR = "0x3600000000000000000000000000000000000000"; // Endereço contrato USDC
+    <div class="card" id="bridgeUI" style="opacity: 0.4; pointer-events: none;">
+        <h2>🌉 BRIDGE</h2>
+        <div class="input-group">
+            <span class="label">Source: ARC Testnet</span>
+            <input type="number" id="bridgeAmount" value="1.0" min="0">
+            <div class="balance" id="balBridge">Bal: 0.00 USDC</div>
+        </div>
+        
+        <div class="input-group">
+            <span class="label">Destination Network</span>
+            <select id="destNetwork">
+                <option value="0">Ethereum Sepolia</option>
+                <option value="6">Base Sepolia</option>
+                <option value="3">Arbitrum Sepolia</option>
+            </select>
+        </div>
+        <button id="bridgeBtn" class="main-btn btn-blue">BRIDGE</button>
+    </div>
 
-        const ABI = [
-            "function approve(address s, uint256 a) public returns (bool)",
-            "function exchange(int128 i, int128 j, uint256 dx, uint256 m) external returns (uint256)",
-            "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)",
-            "function balanceOf(address a) public view returns (uint256)",
-            "function allowance(address owner, address spender) public view returns (uint256)"
-        ];
+    <div id="status">Waiting for connection...</div>
 
-        let points = 0;
-        let isReversed = false;
-        let walletAddress = "";
+    <div id="history">
+        <h3 style="font-size: 14px; margin-top: 0;">📜 Session Activity</h3>
+        <div id="historyList"></div>
+    </div>
+</div>
 
-        function updateExplorer(hash) {
-            const link = document.getElementById('arcscanLink');
-            link.href = "https://testnet.arcscan.app/tx/" + hash;
-            link.style.display = "block";
-        }
+<script>
+    const POOL = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
+    const TOKENS = [
+        "0x3600000000000000000000000000000000000000", 
+        "0x89b50855aa3be2f677cd6303cec089b5f319d72a"
+    ];
+    const TOK_NAMES = ["USDC", "EURC"];
+    const MESSENGER = "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA";
 
-        function syncXP(add) {
-            const oldPoints = points;
-            points += add;
-            localStorage.setItem('arc_xp_' + walletAddress, points);
-            document.getElementById('xpCount').innerText = points;
-            if (points >= 200) {
-                document.getElementById('nftSection').style.display = 'block';
-                if (oldPoints < 200) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-            }
-        }
+    let provider, signer, walletAddress;
+    const ABI = [
+        "function approve(address s, uint256 a) public returns (bool)",
+        "function exchange(int128 i, int128 j, uint256 dx, uint256 m) external returns (uint256)",
+        "function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)",
+        "function balanceOf(address a) public view returns (uint256)"
+    ];
 
-        async function updateBalances() {
-            if (!window.ethereum || !walletAddress) return;
-            try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const balance = await provider.getBalance(walletAddress);
-                const fUSDC = parseFloat(ethers.utils.formatEther(balance)).toFixed(2);
-                
-                const eurcContract = new ethers.Contract(EURC_ADDR, ABI, provider);
-                const eBal = await eurcContract.balanceOf(walletAddress).catch(() => ethers.BigNumber.from(0));
-                const fEURC = parseFloat(ethers.utils.formatUnits(eBal, 6)).toFixed(2);
-                
-                document.getElementById('balanceFrom').innerText = `Balance: ${isReversed ? fEURC : fUSDC} ${isReversed ? 'EURC' : 'USDC'}`;
-                document.getElementById('balanceTo').innerText = `Balance: ${isReversed ? fUSDC : fEURC} ${isReversed ? 'USDC' : 'EURC'}`;
-            } catch (e) { console.log("Syncing..."); }
-        }
+    async function sync() {
+        if (!signer) return;
+        const i = document.getElementById('tokenFrom').value;
+        const j = document.getElementById('tokenTo').value;
+        const cFrom = new ethers.Contract(TOKENS[i], ABI, signer);
+        const cTo = new ethers.Contract(TOKENS[j], ABI, signer);
+        const cBridge = new ethers.Contract(TOKENS[0], ABI, signer);
 
-        document.getElementById('connectBtn').onclick = async () => {
-            if (typeof window.ethereum === 'undefined') { alert("MetaMask not found!"); return; }
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                walletAddress = accounts[0];
-                const saved = localStorage.getItem('arc_xp_' + walletAddress);
-                points = saved ? parseInt(saved) : 0;
-                document.getElementById('xpCount').innerText = points;
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('swapContainer').classList.add('active');
-                document.getElementById('actionBtn').style.display = 'block';
-                document.getElementById('status').innerText = "Connected: " + walletAddress.substring(0,6);
-                if (points >= 200) document.getElementById('nftSection').style.display = 'block';
-                await updateBalances();
-                setInterval(updateBalances, 5000);
-            } catch (e) { document.getElementById('status').innerText = "Connection failed."; }
-        };
+        const bF = await cFrom.balanceOf(walletAddress);
+        const bT = await cTo.balanceOf(walletAddress);
+        const bB = await cBridge.balanceOf(walletAddress);
 
-        document.getElementById('swapAmount').oninput = async () => {
-            const val = document.getElementById('swapAmount').value;
-            if (!val || val <= 0) { document.getElementById('swapResult').value = ""; return; }
-            try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const pool = new ethers.Contract(POOL_ADDR, ABI, provider);
-                const dx = ethers.utils.parseUnits(val.toString(), 6);
-                const dy = await pool.get_dy(isReversed ? 1 : 0, isReversed ? 0 : 1, dx);
-                document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
-            } catch (e) { document.getElementById('swapResult').value = "0.0"; }
-        };
+        document.getElementById('balFrom').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bF,6)).toFixed(2)} ${TOK_NAMES[i]}`;
+        document.getElementById('balTo').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bT,6)).toFixed(2)} ${TOK_NAMES[j]}`;
+        document.getElementById('balBridge').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bB,6)).toFixed(2)} USDC`;
+    }
 
-        document.getElementById('reverseBtn').onclick = () => {
-            isReversed = !isReversed;
-            document.getElementById('tokenFrom').innerText = isReversed ? "EURC" : "USDC";
-            document.getElementById('tokenTo').innerText = isReversed ? "USDC" : "EURC";
-            document.getElementById('labelFrom').innerText = `DE (${isReversed ? 'EURC' : 'USDC'})`;
-            document.getElementById('labelTo').innerText = `PARA (${isReversed ? 'USDC' : 'EURC'})`;
-            document.getElementById('swapAmount').value = "";
-            document.getElementById('swapResult').value = "";
-            updateBalances();
-        };
+    function validateAndSync() {
+        const from = document.getElementById('tokenFrom');
+        const to = document.getElementById('tokenTo');
+        if (from.value === to.value) to.value = (parseInt(from.value) + 1) % 2;
+        sync();
+        calculateSwap();
+    }
 
-        document.getElementById('swapBtn').onclick = async () => {
-            const amount = document.getElementById('swapAmount').value;
-            if (!amount || amount <= 0) return;
-            try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
-                const val = ethers.utils.parseUnits(amount, 6);
-                const pool = new ethers.Contract(POOL_ADDR, ABI, signer);
+    async function calculateSwap() {
+        const amt = document.getElementById('swapAmount').value;
+        const i = document.getElementById('tokenFrom').value;
+        const j = document.getElementById('tokenTo').value;
+        if(!amt || amt <= 0) { document.getElementById('swapResult').value = "0.0"; return; }
+        try {
+            const pool = new ethers.Contract(POOL, ABI, signer);
+            const dy = await pool.get_dy(i, j, ethers.utils.parseUnits(amt, 6));
+            document.getElementById('swapResult').value = ethers.utils.formatUnits(dy, 6);
+        } catch(e) { document.getElementById('swapResult').value = "---"; }
+    }
 
-                // --- CORREÇÃO PARA CONTAS SECUNDÁRIAS ---
-                const tokenToApprove = isReversed ? EURC_ADDR : USDC_ADDR;
-                const tokenContract = new ethers.Contract(tokenToApprove, ABI, signer);
-                
-                document.getElementById('status').innerText = "Checking permission...";
-                const allowance = await tokenContract.allowance(walletAddress, POOL_ADDR);
-                
-                if (allowance.lt(val)) {
-                    document.getElementById('status').innerText = "Approving token (First time)...";
-                    const appTx = await tokenContract.approve(POOL_ADDR, ethers.constants.MaxUint256);
-                    await appTx.wait();
-                    document.getElementById('status').innerText = "Approved! Swapping...";
-                }
+    // Inverter tokens ao clicar no botão bidirecional
+    document.getElementById('reverseSwap').onclick = () => {
+        const from = document.getElementById('tokenFrom');
+        const to = document.getElementById('tokenTo');
+        const temp = from.value;
+        from.value = to.value;
+        to.value = temp;
+        validateAndSync();
+    };
 
-                const tx = await pool.exchange(isReversed ? 1 : 0, isReversed ? 0 : 1, val, 0, { gasLimit: 1000000 });
-                updateExplorer(tx.hash);
-                await tx.wait();
-                document.getElementById('status').innerText = "Swap Complete! +20 XP";
-                syncXP(20);
-                updateBalances();
-            } catch (e) { 
-                console.error(e);
-                document.getElementById('status').innerText = "Swap failed. Check console."; 
-            }
-        };
+    document.getElementById('tokenFrom').onchange = validateAndSync;
+    document.getElementById('tokenTo').onchange = validateAndSync;
+    document.getElementById('swapAmount').oninput = calculateSwap;
 
-        document.getElementById('actionBtn').onclick = async () => {
-            try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
-                const tx = await signer.sendTransaction({ to: walletAddress, value: 0 });
-                updateExplorer(tx.hash);
-                await tx.wait();
-                document.getElementById('status').innerText = "Signal Received! +10 XP";
-                syncXP(10);
-                updateBalances();
-            } catch (e) { document.getElementById('status').innerText = "Signal failed."; }
-        };
-    </script>
+    document.getElementById('connectBtn').onclick = async () => {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner(); walletAddress = accounts[0];
+        document.getElementById('connectBtn').style.display="none";
+        document.getElementById('swapUI').style.opacity=document.getElementById('bridgeUI').style.opacity="1";
+        document.getElementById('swapUI').style.pointerEvents=document.getElementById('bridgeUI').style.pointerEvents="auto";
+        document.getElementById('status').innerText = "Wallet: " + walletAddress;
+        sync();
+    };
+
+    document.getElementById('swapBtn').onclick = async () => {
+        const amt = document.getElementById('swapAmount').value;
+        if (amt <= 0) { alert("Please enter a positive amount"); return; }
+        const i = document.getElementById('tokenFrom').value;
+        const j = document.getElementById('tokenTo').value;
+        const status = document.getElementById('status');
+        try {
+            const val = ethers.utils.parseUnits(amt, 6);
+            const token = new ethers.Contract(TOKENS[i], ABI, signer);
+            const pool = new ethers.Contract(POOL, ABI, signer);
+            status.innerText = "Approving...";
+            await (await token.approve(POOL, ethers.constants.MaxUint256)).wait();
+            status.innerText = "Swapping...";
+            const tx = await pool.exchange(i, j, val, 0, { gasLimit: 1000000 });
+            const list = document.getElementById('historyList');
+            const item = document.createElement('div');
+            item.className = 'hist-item';
+            item.innerHTML = `<span>Swap ${TOK_NAMES[i]} to ${TOK_NAMES[j]}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View on ArcScan ↗</a>`;
+            list.prepend(item);
+            await tx.wait();
+            status.innerText = "✅ Swap Complete!";
+            confetti({ particleCount: 50, spread: 60 });
+            sync();
+        } catch(e) { status.innerText = "Swap Error."; }
+    };
+
+    document.getElementById('bridgeBtn').onclick = async () => {
+        const amt = document.getElementById('bridgeAmount').value;
+        if (amt <= 0) { alert("Please enter a positive amount"); return; }
+        const domain = document.getElementById('destNetwork').value;
+        const status = document.getElementById('status');
+        try {
+            const val = ethers.utils.parseUnits(amt, 6);
+            const usdc = new ethers.Contract(TOKENS[0], ABI, signer);
+            const messenger = new ethers.Contract(MESSENGER, ["function depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32) returns (uint64)"], signer);
+            status.innerText = "Approving Bridge...";
+            await (await usdc.approve(MESSENGER, val)).wait();
+            status.innerText = "Burning Token...";
+            const tx = await messenger.depositForBurn(val, domain, ethers.utils.hexZeroPad(walletAddress, 32), TOKENS[0], ethers.utils.hexZeroPad("0x0", 32), 0, 1000, { gasLimit: 800000 });
+            const list = document.getElementById('historyList');
+            const item = document.createElement('div');
+            item.className = 'hist-item';
+            const netName = document.getElementById('destNetwork').options[document.getElementById('destNetwork').selectedIndex].text;
+            item.innerHTML = `<span>Bridge USDC to ${netName}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View on ArcScan ↗</a>`;
+            list.prepend(item);
+            await tx.wait();
+            status.innerText = "✅ Bridge Initiated!";
+            sync();
+        } catch(e) { status.innerText = "Bridge Error."; }
+    };
+</script>
 </body>
 </html>
