@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Hub V2.6 | Final Pro Edition</title>
+    <title>ARC Hub V2.6.1 | Analytics Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -13,31 +13,14 @@
         header { grid-column: 1 / -1; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 20px; }
         .card { background: var(--card); padding: 25px; border-radius: 20px; border: 2px solid var(--primary); position: relative; }
         .input-group { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; }
-        
-        select { 
-            background: #0f172a; border: 1px solid var(--primary); color: white; 
-            font-size: 14px; width: 100%; outline: none; cursor: pointer; 
-            padding: 10px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s;
-        }
-        select:focus { box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        select { background: #0f172a; border: 1px solid var(--primary); color: white; font-size: 14px; width: 100%; outline: none; cursor: pointer; padding: 10px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s; }
         input { background: transparent; border: none; color: white; font-size: 18px; width: 100%; outline: none; }
         .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; display: block; }
         .balance { font-size: 10px; color: var(--primary); text-align: right; font-family: monospace; font-weight: bold; }
-        
-        /* Botão Bidirecional */
         .swap-divider { display: flex; justify-content: center; margin: -15px 0 -15px 0; z-index: 10; position: relative; }
-        .reverse-btn { 
-            background: #1e293b; border: 2px solid var(--primary); color: var(--primary); 
-            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center; font-weight: bold;
-            transition: 0.3s;
-        }
-        .reverse-btn:hover { background: var(--primary); color: white; transform: rotate(180deg); }
-
+        .reverse-btn { background: #1e293b; border: 2px solid var(--primary); color: var(--primary); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
         .main-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; color: white; margin-top: 10px; transition: 0.2s; }
-        .main-btn:active { transform: scale(0.98); }
         .btn-green { background: var(--green); } .btn-blue { background: #3b82f6; } .btn-orange { background: #f59e0b; }
-        
         #history { grid-column: 1 / -1; margin-top: 30px; background: #0f172a; border-radius: 15px; padding: 20px; border: 1px solid #334155; }
         .hist-item { font-size: 11px; padding: 8px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; }
         #status { grid-column: 1 / -1; text-align: center; font-size: 11px; color: #38bdf8; margin-top: 15px; }
@@ -108,12 +91,10 @@
 
 <script>
     const POOL = "0x2d84d79c852f6842abe0304b70bbaa1506add457";
-    const TOKENS = [
-        "0x3600000000000000000000000000000000000000", 
-        "0x89b50855aa3be2f677cd6303cec089b5f319d72a"
-    ];
+    const TOKENS = ["0x3600000000000000000000000000000000000000", "0x89b50855aa3be2f677cd6303cec089b5f319d72a"];
     const TOK_NAMES = ["USDC", "EURC"];
     const MESSENGER = "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA";
+    const HUB_TAG = "617263687562"; // "archub" in hex
 
     let provider, signer, walletAddress;
     const ABI = [
@@ -125,19 +106,17 @@
 
     async function sync() {
         if (!signer) return;
-        const i = document.getElementById('tokenFrom').value;
-        const j = document.getElementById('tokenTo').value;
-        const cFrom = new ethers.Contract(TOKENS[i], ABI, signer);
-        const cTo = new ethers.Contract(TOKENS[j], ABI, signer);
-        const cBridge = new ethers.Contract(TOKENS[0], ABI, signer);
-
-        const bF = await cFrom.balanceOf(walletAddress);
-        const bT = await cTo.balanceOf(walletAddress);
-        const bB = await cBridge.balanceOf(walletAddress);
-
-        document.getElementById('balFrom').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bF,6)).toFixed(2)} ${TOK_NAMES[i]}`;
-        document.getElementById('balTo').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bT,6)).toFixed(2)} ${TOK_NAMES[j]}`;
-        document.getElementById('balBridge').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bB,6)).toFixed(2)} USDC`;
+        try {
+            const i = document.getElementById('tokenFrom').value;
+            const j = document.getElementById('tokenTo').value;
+            const cFrom = new ethers.Contract(TOKENS[i], ABI, signer);
+            const cTo = new ethers.Contract(TOKENS[j], ABI, signer);
+            const cBridge = new ethers.Contract(TOKENS[0], ABI, signer);
+            const [bF, bT, bB] = await Promise.all([cFrom.balanceOf(walletAddress), cTo.balanceOf(walletAddress), cBridge.balanceOf(walletAddress)]);
+            document.getElementById('balFrom').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bF,6)).toFixed(2)} ${TOK_NAMES[i]}`;
+            document.getElementById('balTo').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bT,6)).toFixed(2)} ${TOK_NAMES[j]}`;
+            document.getElementById('balBridge').innerText = `Bal: ${parseFloat(ethers.utils.formatUnits(bB,6)).toFixed(2)} USDC`;
+        } catch(e) {}
     }
 
     function validateAndSync() {
@@ -160,13 +139,10 @@
         } catch(e) { document.getElementById('swapResult').value = "---"; }
     }
 
-    // Inverter tokens ao clicar no botão bidirecional
     document.getElementById('reverseSwap').onclick = () => {
         const from = document.getElementById('tokenFrom');
         const to = document.getElementById('tokenTo');
-        const temp = from.value;
-        from.value = to.value;
-        to.value = temp;
+        const temp = from.value; from.value = to.value; to.value = temp;
         validateAndSync();
     };
 
@@ -175,19 +151,21 @@
     document.getElementById('swapAmount').oninput = calculateSwap;
 
     document.getElementById('connectBtn').onclick = async () => {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        signer = provider.getSigner(); walletAddress = accounts[0];
-        document.getElementById('connectBtn').style.display="none";
-        document.getElementById('swapUI').style.opacity=document.getElementById('bridgeUI').style.opacity="1";
-        document.getElementById('swapUI').style.pointerEvents=document.getElementById('bridgeUI').style.pointerEvents="auto";
-        document.getElementById('status').innerText = "Wallet: " + walletAddress;
-        sync();
+        try {
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner(); walletAddress = accounts[0];
+            document.getElementById('connectBtn').style.display="none";
+            document.getElementById('swapUI').style.opacity=document.getElementById('bridgeUI').style.opacity="1";
+            document.getElementById('swapUI').style.pointerEvents=document.getElementById('bridgeUI').style.pointerEvents="auto";
+            document.getElementById('status').innerText = "Wallet: " + walletAddress;
+            sync();
+        } catch(e) { alert("Connection failed."); }
     };
 
     document.getElementById('swapBtn').onclick = async () => {
         const amt = document.getElementById('swapAmount').value;
-        if (amt <= 0) { alert("Please enter a positive amount"); return; }
+        if (amt <= 0) return;
         const i = document.getElementById('tokenFrom').value;
         const j = document.getElementById('tokenTo').value;
         const status = document.getElementById('status');
@@ -197,43 +175,53 @@
             const pool = new ethers.Contract(POOL, ABI, signer);
             status.innerText = "Approving...";
             await (await token.approve(POOL, ethers.constants.MaxUint256)).wait();
-            status.innerText = "Swapping...";
-            const tx = await pool.exchange(i, j, val, 0, { gasLimit: 1000000 });
+            status.innerText = "Swapping with ID...";
+            
+            // Transação com assinatura para o Dune
+            const txData = await pool.populateTransaction.exchange(i, j, val, 0);
+            txData.data = txData.data + HUB_TAG;
+            const tx = await signer.sendTransaction(txData);
+            
+            status.innerText = "Transaction sent...";
             const list = document.getElementById('historyList');
             const item = document.createElement('div');
             item.className = 'hist-item';
-            item.innerHTML = `<span>Swap ${TOK_NAMES[i]} to ${TOK_NAMES[j]}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View on ArcScan ↗</a>`;
+            item.innerHTML = `<span>Swap ${TOK_NAMES[i]} -> ${TOK_NAMES[j]}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View ↗</a>`;
             list.prepend(item);
             await tx.wait();
             status.innerText = "✅ Swap Complete!";
             confetti({ particleCount: 50, spread: 60 });
             sync();
-        } catch(e) { status.innerText = "Swap Error."; }
+        } catch(e) { status.innerText = "Swap Error."; console.log(e); }
     };
 
     document.getElementById('bridgeBtn').onclick = async () => {
         const amt = document.getElementById('bridgeAmount').value;
-        if (amt <= 0) { alert("Please enter a positive amount"); return; }
+        if (amt <= 0) return;
         const domain = document.getElementById('destNetwork').value;
         const status = document.getElementById('status');
         try {
             const val = ethers.utils.parseUnits(amt, 6);
             const usdc = new ethers.Contract(TOKENS[0], ABI, signer);
-            const messenger = new ethers.Contract(MESSENGER, ["function depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32) returns (uint64)"], signer);
+            const messenger = new ethers.Contract(MESSENGER, ["function depositForBurn(uint256,uint32,bytes32,address,bytes32,uint256,uint32)"], signer);
             status.innerText = "Approving Bridge...";
             await (await usdc.approve(MESSENGER, val)).wait();
-            status.innerText = "Burning Token...";
-            const tx = await messenger.depositForBurn(val, domain, ethers.utils.hexZeroPad(walletAddress, 32), TOKENS[0], ethers.utils.hexZeroPad("0x0", 32), 0, 1000, { gasLimit: 800000 });
+            status.innerText = "Bridging with ID...";
+
+            const txData = await messenger.populateTransaction.depositForBurn(val, domain, ethers.utils.hexZeroPad(walletAddress, 32), TOKENS[0], ethers.utils.hexZeroPad("0x0", 32), 0, 1000);
+            txData.data = txData.data + HUB_TAG;
+            const tx = await signer.sendTransaction(txData);
+
             const list = document.getElementById('historyList');
             const item = document.createElement('div');
             item.className = 'hist-item';
             const netName = document.getElementById('destNetwork').options[document.getElementById('destNetwork').selectedIndex].text;
-            item.innerHTML = `<span>Bridge USDC to ${netName}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View on ArcScan ↗</a>`;
+            item.innerHTML = `<span>Bridge USDC to ${netName}</span><a href="https://testnet.arcscan.app/tx/${tx.hash}" target="_blank" style="color:#38bdf8">View ↗</a>`;
             list.prepend(item);
             await tx.wait();
             status.innerText = "✅ Bridge Initiated!";
             sync();
-        } catch(e) { status.innerText = "Bridge Error."; }
+        } catch(e) { status.innerText = "Bridge Error."; console.log(e); }
     };
 </script>
 </body>
