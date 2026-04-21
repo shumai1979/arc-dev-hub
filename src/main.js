@@ -12,6 +12,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  http,
   formatUnits,
   parseUnits,
   erc20Abi
@@ -235,7 +236,7 @@ async function connectWallet() {
 
     publicClient = createPublicClient({
       chain: arcTestnet,
-      transport: custom(window.ethereum)
+      transport: http(ARC_RPC_URL)
     });
     walletClient = createWalletClient({
       chain: arcTestnet,
@@ -448,6 +449,11 @@ async function doBridge() {
         if (s.txHash) log('inf', `  ${s.name}: ${s.txHash.slice(0, 10)}…`);
       });
     }
+    log('inf', `Bridge › ${amt} USDC is now on ${dest}. Arc balance will show 0 (funds are on destination).`);
+    try {
+      await ensureArcTestnet();
+      log('inf', 'Bridge › wallet switched back to Arc Testnet');
+    } catch (_) { /* user declined switch */ }
     await syncBalances();
   } catch (e) {
     log('err', 'Bridge › ' + (e?.message || e));
