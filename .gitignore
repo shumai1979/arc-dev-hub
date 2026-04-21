@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+.env.local
+.vite/
+
+# Local helper scripts (not intended for the repo)
+_push.bat
+_push_log.txt

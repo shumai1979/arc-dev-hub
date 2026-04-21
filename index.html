@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARC HUB — Circle App Kit Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@300;400;500;700&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══════ MASTHEAD ══════ -->
+  <header class="masthead">
+    <div class="brand">
+      <div class="brand-mark">Arc <em>Hub</em></div>
+      <div class="brand-meta">
+        <div class="brand-chap">Vol. VIII · Edition 01</div>
+        <div class="brand-sub">Circle App Kit Terminal</div>
+      </div>
+    </div>
+    <div class="brand-actions">
+      <button id="connectBtn" class="connect-btn">Connect Wallet</button>
+      <div id="walletInfo"></div>
+    </div>
+  </header>
+
+  <!-- ══════ INTRO ══════ -->
+  <section class="intro">
+    <div class="intro-left">
+      Three <em>instruments</em> for moving stablecoins — bridge, swap, and send — powered by Circle's official App Kit SDK.
+    </div>
+    <div class="intro-right">
+      <div class="intro-note">
+        Each operation executes through the Cross-Chain Transfer Protocol with sub-second finality. Built for the Arc Testnet ahead of mainnet launch.
+      </div>
+      <div class="intro-tags">
+        <div class="tag dot">App Kit Live</div>
+        <div class="tag">CCTP v2</div>
+        <div class="tag">Arc Testnet</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ TERMINALS ══════ -->
+  <div class="terminals">
+
+    <!-- ─── SWAP ─── -->
+    <div class="terminal" data-variant="swap">
+      <div class="t-head">
+        <div class="t-head-left">
+          <div class="t-chapter">№ 01 / Instrument</div>
+          <div class="t-title">The <em>Swap</em></div>
+        </div>
+        <div class="t-badge">SAME-CHAIN</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">You deposit</span>
+          <span class="field-bal">Balance <span id="balIn">—</span></span>
+        </div>
+        <div class="field-input">
+          <input type="number" id="swapAmt" placeholder="0.00" min="0">
+          <div class="token-pill">
+            <select id="tokenIn">
+              <option value="USDC">USDC</option>
+              <option value="EURC">EURC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="swap-divider">
+        <button id="flipBtn" title="Reverse">↕</button>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">You receive, est.</span>
+          <span class="field-bal">Balance <span id="balOut">—</span></span>
+        </div>
+        <div class="field-input">
+          <input type="text" id="swapOut" placeholder="0.00" readonly>
+          <div class="token-pill">
+            <select id="tokenOut">
+              <option value="EURC">EURC</option>
+              <option value="USDC">USDC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">Rate</span>
+        <span class="info-value" id="swapRate">awaiting quote</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">Slippage</span>
+        <div class="chips slippage-chips">
+          <button class="chip" data-slip="100">1%</button>
+          <button class="chip active" data-slip="300">3%</button>
+          <button class="chip" data-slip="500">5%</button>
+        </div>
+      </div>
+
+      <div id="swapSteps" class="steps">
+        <div class="step" id="s-approve"><div class="step-num">1</div><span>Grant allowance</span></div>
+        <div class="step" id="s-swap"><div class="step-num">2</div><span>Execute swap</span></div>
+      </div>
+
+      <button class="execute" id="swapBtn" disabled>
+        Execute swap<span class="arrow">→</span>
+      </button>
+    </div>
+
+    <!-- ─── BRIDGE ─── -->
+    <div class="terminal" data-variant="bridge">
+      <div class="t-head">
+        <div class="t-head-left">
+          <div class="t-chapter">№ 02 / Instrument</div>
+          <div class="t-title">The <em>Bridge</em></div>
+        </div>
+        <div class="t-badge">CCTP V2</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Amount</span>
+          <span class="field-bal">Balance <span id="balBridge">—</span></span>
+        </div>
+        <div class="field-input">
+          <input type="number" id="bridgeAmt" placeholder="1.00" min="0">
+          <div class="token-label">USDC</div>
+        </div>
+      </div>
+
+      <div class="dest-wrap">
+        <span class="field-label">Destination chain</span>
+        <div class="dest-select">
+          <select id="bridgeDest">
+            <option value="Base_Sepolia">Base Sepolia</option>
+            <option value="Ethereum_Sepolia">Ethereum Sepolia</option>
+            <option value="Arbitrum_Sepolia">Arbitrum Sepolia</option>
+            <option value="Polygon_Amoy_Testnet">Polygon Amoy</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label">Transfer speed</span>
+        <div class="chips speed-chips">
+          <button class="chip active" data-speed="FAST">Fast</button>
+          <button class="chip" data-speed="SLOW">Standard</button>
+        </div>
+      </div>
+
+      <div id="bridgeSteps" class="steps">
+        <div class="step" id="b-approve"><div class="step-num">1</div><span>Grant allowance</span></div>
+        <div class="step" id="b-burn"><div class="step-num">2</div><span>Burn on Arc</span></div>
+        <div class="step" id="b-attest"><div class="step-num">3</div><span>Await attestation</span></div>
+        <div class="step" id="b-mint"><div class="step-num">4</div><span>Mint on destination</span></div>
+      </div>
+
+      <button class="execute" id="bridgeBtn" disabled>
+        Bridge funds<span class="arrow">→</span>
+      </button>
+    </div>
+
+    <!-- ─── SEND ─── -->
+    <div class="terminal" data-variant="send">
+      <div class="t-head">
+        <div class="t-head-left">
+          <div class="t-chapter">№ 03 / Instrument</div>
+          <div class="t-title">The <em>Transfer</em></div>
+        </div>
+        <div class="t-badge">SAME-CHAIN</div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Amount</span>
+          <span class="field-bal">Balance <span id="balSend">—</span></span>
+        </div>
+        <div class="field-input">
+          <input type="number" id="sendAmt" placeholder="1.00" min="0">
+          <div class="token-pill">
+            <select id="sendToken">
+              <option value="USDC">USDC</option>
+              <option value="EURC">EURC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <span class="field-label">Recipient</span>
+        </div>
+        <div class="field-input">
+          <input type="text" id="sendTo" placeholder="0x…" class="address-input">
+        </div>
+      </div>
+
+      <div class="self-row" id="fillSelfBtn">
+        <span class="self-label">Send to self</span>
+        <span class="self-arrow">USE MY WALLET →</span>
+      </div>
+
+      <div style="flex:1"></div>
+
+      <div id="sendSteps" class="steps">
+        <div class="step" id="t-approve"><div class="step-num">1</div><span>Prepare transaction</span></div>
+        <div class="step" id="t-send"><div class="step-num">2</div><span>Broadcast</span></div>
+      </div>
+
+      <button class="execute" id="sendBtn" disabled>
+        Send funds<span class="arrow">→</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══════ LOG ══════ -->
+  <section class="log-section">
+    <div class="log-label">
+      Activity<span class="num">log</span>
+    </div>
+    <div id="log"></div>
+  </section>
+
+  <!-- ══════ COLOPHON ══════ -->
+  <footer class="colophon">
+    <div class="colophon-text">
+      Built on <em>Arc</em> · A terminal by <em>shumai</em>
+    </div>
+    <div class="colophon-text" id="colophon-wallet">
+      Wallet <em>not connected</em>
+    </div>
+  </footer>
+
+</div>
+
+<script type="module" src="/src/main.js"></script>
+
+</body>
+</html>
