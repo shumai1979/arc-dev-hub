@@ -34,13 +34,16 @@ const KIT_KEY = import.meta.env.VITE_KIT_KEY || '';
 (function installCircleProxyFetch() {
   if (typeof window === 'undefined' || !window.fetch) return;
   const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
-  if (!isDev) return;
+  // In dev: Vite proxy at /circle-proxy. In prod: Cloudflare Worker from env.
+  const prodProxy = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_CIRCLE_PROXY_URL) || '';
+  const target = isDev ? '/circle-proxy' : prodProxy;
+  if (!target) return; // No proxy configured in prod — swap will fail CORS; bridge still works.
   const origFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     try {
       let url = typeof input === 'string' ? input : (input && input.url) || '';
       if (url.startsWith('https://api.circle.com/')) {
-        const rewritten = url.replace('https://api.circle.com', '/circle-proxy');
+        const rewritten = url.replace('https://api.circle.com', target);
         if (typeof input === 'string') {
           return origFetch(rewritten, init);
         }
@@ -376,6 +379,13 @@ async function doSwap() {
   const amt = document.getElementById('swapAmt').value;
   if (!amt || parseFloat(amt) <= 0) { log('err', 'Enter an amount to swap'); return; }
   if (!walletAddress) { log('err', 'Connect wallet first'); return; }
+  // In prod, swap requires a CORS proxy (Cloudflare Worker) configured via VITE_CIRCLE_PROXY_URL.
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+  const hasProxy = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_CIRCLE_PROXY_URL;
+  if (!isDev && !hasProxy) {
+    log('err', 'Swap needs a Circle API proxy in production. See cloudflare-worker/README.md to deploy the free Cloudflare Worker and set VITE_CIRCLE_PROXY_URL as a repo secret.');
+    return;
+  }
   if (!swapKit || !adapter) { log('err', 'Swap Kit not initialised'); return; }
   if (!kitKeyReady()) { warnKitKey(); return; }
 

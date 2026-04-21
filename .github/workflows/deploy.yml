@@ -34,6 +34,8 @@ jobs:
           # Kit Key is injected from repo secrets at build time.
           # Add VITE_KIT_KEY under Settings → Secrets and variables → Actions → New repository secret.
           VITE_KIT_KEY: ${{ secrets.VITE_KIT_KEY }}
+          # Cloudflare Worker URL for swap CORS proxy (see cloudflare-worker/README.md).
+          VITE_CIRCLE_PROXY_URL: ${{ secrets.VITE_CIRCLE_PROXY_URL }}
         run: npm run build
 
       - name: Upload Pages artifact
