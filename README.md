@@ -9,6 +9,7 @@ Three instruments: **Bridge**, **Swap**, and **Send** — all wired to browser w
 ![Arc](https://img.shields.io/badge/Arc-Testnet-6b8e7f)
 ![Circle](https://img.shields.io/badge/Circle-Bridge%20%2B%20Swap%20Kit-2d4a6b)
 ![Vite](https://img.shields.io/badge/Vite-5-ffc45c)
+![Deploy](https://github.com/shumai1979/arc-dev-hub/actions/workflows/deploy.yml/badge.svg)
 
 ---
 
