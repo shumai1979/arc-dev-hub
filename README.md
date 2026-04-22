@@ -1,13 +1,13 @@
 # ARC HUB — Circle App Kit Terminal
 
 A premium stablecoin terminal for the **Circle Arc Testnet**, built with the official
-Circle SDKs (`@circle-fin/bridge-kit` + `@circle-fin/swap-kit` + `@circle-fin/adapter-viem-v2`).
+Circle SDK (`@circle-fin/app-kit` + `@circle-fin/adapter-viem-v2`).
 Three instruments: **Bridge**, **Swap**, and **Send** — all wired to browser wallets (MetaMask, Rabby).
 
 **Live demo:** https://shumai1979.github.io/arc-dev-hub/
 
 ![Arc](https://img.shields.io/badge/Arc-Testnet-6b8e7f)
-![Circle](https://img.shields.io/badge/Circle-Bridge%20%2B%20Swap%20Kit-2d4a6b)
+![Circle](https://img.shields.io/badge/Circle-App%20Kit-2d4a6b)
 ![Vite](https://img.shields.io/badge/Vite-5-ffc45c)
 ![Deploy](https://github.com/shumai1979/arc-dev-hub/actions/workflows/deploy.yml/badge.svg)
 
@@ -94,17 +94,11 @@ reject the preflight request for swap quotes and executions.
 - `Send` ✅ (pure on-chain viem `writeContract` call)
 
 **Swap in production:**
-The deployed GitHub Pages build has no same-origin backend, so the in-app
-dev-time workaround (Vite proxy) does not apply. To enable swap on the public
-demo you'd need a small backend proxy. A few options:
-
-- A Vercel / Cloudflare / Netlify edge function that forwards
-  `/api/circle/*` → `https://api.circle.com/v1/*`, and ideally holds the Kit
-  Key server-side (so it never ships to the browser).
-- A Render / Fly / Railway Express mini-service doing the same.
-
-Until that exists, swap will fail on the public URL with
-`Failed to fetch (CORS)`. Bridge and Send keep working.
+A Cloudflare Worker proxy is deployed at `https://archub-circle-proxy.cesaricf79.workers.dev`
+and fronts `api.circle.com`. The worker URL is injected at build time via the
+`VITE_CIRCLE_PROXY_URL` GitHub Actions secret. The app's fetch interceptor
+(installed before `AppKit` is instantiated) rewrites all `https://api.circle.com/`
+requests to the worker URL in production, and to Vite's `/circle-proxy` in dev.
 
 ---
 
@@ -115,6 +109,8 @@ arc-dev-hub/
 ├── .env.example          # Template — copy to .env and fill in VITE_KIT_KEY
 ├── .github/workflows/
 │   └── deploy.yml        # GitHub Actions → GitHub Pages
+├── cloudflare-worker/
+│   └── worker.js         # Cloudflare Worker source (CORS proxy for api.circle.com)
 ├── index.html            # Entry
 ├── src/
 │   ├── main.js           # SDK integration: Bridge / Swap / Send
@@ -125,22 +121,26 @@ arc-dev-hub/
 
 ---
 
-## How the Circle SDKs are wired
+## How the Circle SDK is wired
 
 ### Bridge (CCTP v2)
 ```js
-import { BridgeKit } from '@circle-fin/bridge-kit';
+import { AppKit } from '@circle-fin/app-kit';
 import { createViemAdapterFromProvider } from '@circle-fin/adapter-viem-v2';
 
 const adapter = await createViemAdapterFromProvider({
   provider: window.ethereum,
   capabilities: { addressContext: 'user-controlled' }
 });
-const bridgeKit = new BridgeKit({ kitKey: KIT_KEY });
-bridgeKit.on('approve', ...); bridgeKit.on('burn', ...);
-bridgeKit.on('fetchAttestation', ...); bridgeKit.on('mint', ...);
+const kit = new AppKit();
 
-await bridgeKit.bridge({
+// Events are namespaced with "bridge." in app-kit
+kit.on('bridge.approve', ...);
+kit.on('bridge.burn', ...);
+kit.on('bridge.fetchAttestation', ...);
+kit.on('bridge.mint', ...);
+
+await kit.bridge({
   from: { adapter, chain: 'Arc_Testnet' },
   to:   { adapter, chain: 'Base_Sepolia' },
   amount: '1.0', token: 'USDC',
@@ -150,10 +150,20 @@ await bridgeKit.bridge({
 
 ### Swap
 ```js
-import { SwapKit } from '@circle-fin/swap-kit';
+import { AppKit } from '@circle-fin/app-kit';
 
-const swapKit = new SwapKit();
-await swapKit.swap({
+const kit = new AppKit();
+
+// Get a quote
+const est = await kit.estimateSwap({
+  from: { adapter, chain: 'Arc_Testnet' },
+  tokenIn: 'USDC', tokenOut: 'EURC',
+  amountIn: '10.0',
+  config: { kitKey: KIT_KEY, slippageBps: 300, allowanceStrategy: 'permit' }
+});
+
+// Execute
+await kit.swap({
   from: { adapter, chain: 'Arc_Testnet' },
   tokenIn: 'USDC', tokenOut: 'EURC',
   amountIn: '10.0',
@@ -172,6 +182,10 @@ await walletClient.writeContract({
 });
 ```
 
+Send is kept on raw viem (rather than `kit.send()`) to preserve the explicit
+`waitForTransactionReceipt` step — needed for on-chain revert detection and the
+per-step UI labels.
+
 ---
 
 ## Troubleshooting
@@ -184,19 +198,20 @@ The bridge switches wallet chains during the mint step — that's expected. The
 app no longer auto-reloads on `chainChanged` (that was killing mid-bridge flows).
 
 **`Address should not be provided for user-controlled adapters`**
-Don't pass `address:` to `from`/`to` of `bridgeKit.bridge()` — the user-controlled
+Don't pass `address:` to `from`/`to` of `kit.bridge()` — the user-controlled
 viem adapter auto-resolves the wallet address.
 
 **`SERVICE_UNKNOWN_ERROR: Failed to fetch` on swap (prod only)**
-CORS — see the production note above. Swap needs a backend proxy to ship publicly.
+CORS — the Cloudflare Worker proxy must be deployed and `VITE_CIRCLE_PROXY_URL`
+must be set as a GitHub Actions secret. See `cloudflare-worker/worker.js`.
 
 ---
 
 ## Resources
 
 - [Arc Docs](https://docs.arc.network)
-- [Bridge Kit Quickstart](https://docs.arc.network/app-kit/quickstarts/bridge-between-evm-chains)
-- [Swap Kit Docs](https://docs.arc.network/app-kit/swap)
+- [App Kit Quickstart](https://docs.arc.network/app-kit/quickstarts/bridge-between-evm-chains)
+- [App Kit Swap Docs](https://docs.arc.network/app-kit/swap)
 - [Kit Keys](https://developers.circle.com/w3s/keys#kit-keys)
 - [Arc Testnet Explorer](https://testnet.arcscan.app)
 
