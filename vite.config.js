@@ -1,21 +1,23 @@
 import { defineConfig } from 'vite';
+import inject from '@rollup/plugin-inject';
 
-// IMPORTANT: Change 'arc-hub' below to match your GitHub repository name.
-// If your repo is github.com/shumai1979/arc-hub, keep it as 'arc-hub'.
-// If you rename the repo, update this constant.
 const REPO_NAME = 'arc-dev-hub';
 
 export default defineConfig(({ command }) => ({
-  // Dev server uses '/', production build uses '/REPO_NAME/' for GitHub Pages
   base: command === 'build' ? `/${REPO_NAME}/` : '/',
+
+  plugins: [
+    // Inject Buffer as a global in every module that references it.
+    // Required because @circle-fin/app-kit uses Buffer as an implicit global
+    // (Node.js built-in) which doesn't exist in the browser.
+    inject({
+      Buffer: ['buffer', 'Buffer'],
+    }),
+  ],
 
   server: {
     port: 5173,
     open: true,
-    // Dev-only reverse proxy for Circle's Stablecoin Kits REST API.
-    // Browser → /circle-proxy/v1/... → https://api.circle.com/v1/...
-    // This sidesteps CORS because all requests are same-origin in dev.
-    // In production you'll need a real backend proxy (Vercel fn, Cloudflare worker, etc.)
     proxy: {
       '/circle-proxy': {
         target: 'https://api.circle.com',
@@ -32,7 +34,8 @@ export default defineConfig(({ command }) => ({
   optimizeDeps: {
     esbuildOptions: {
       target: 'esnext'
-    }
+    },
+    include: ['buffer']
   },
   define: {
     'process.env': {},

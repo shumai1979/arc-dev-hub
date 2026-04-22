@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
-// ARC HUB V8.2 — Main Module
-// Migrated to @circle-fin/bridge-kit + @circle-fin/swap-kit + viem
+// ARC HUB V9.0 — Main Module
+// Migrated to @circle-fin/app-kit + viem
 // Browser flow via createViemAdapterFromProvider(window.ethereum)
 // ═══════════════════════════════════════════════════════════════
 
 import confetti from 'canvas-confetti';
-import { BridgeKit } from '@circle-fin/bridge-kit';
-import { SwapKit } from '@circle-fin/swap-kit';
+import { AppKit } from '@circle-fin/app-kit';
 import { createViemAdapterFromProvider } from '@circle-fin/adapter-viem-v2';
 import {
   createPublicClient,
@@ -28,7 +27,7 @@ const KIT_KEY = import.meta.env.VITE_KIT_KEY || '';
 // in its CORS Access-Control-Allow-Headers, so browser preflights fail for the
 // swap endpoints (quote/swap/status). In dev we route those calls through the
 // Vite proxy (see vite.config.js → server.proxy['/circle-proxy']). This MUST run
-// before SwapKit is instantiated. On a production (non-dev) build there is no
+// before AppKit is instantiated. On a production (non-dev) build there is no
 // same-origin proxy available, so swap will continue to fail unless you deploy
 // your own backend proxy (Vercel function, Cloudflare worker, etc.).
 (function installCircleProxyFetch() {
@@ -57,7 +56,7 @@ const KIT_KEY = import.meta.env.VITE_KIT_KEY || '';
 
 // ─── STATE ───
 let adapter, walletAddress;
-let bridgeKit, swapKit;
+let kit;
 let publicClient, walletClient;
 let slippageBps = 300;
 let bridgeSpeed = 'FAST';
@@ -268,31 +267,31 @@ async function connectWallet() {
         capabilities: { addressContext: 'user-controlled' }
       });
 
-      bridgeKit = new BridgeKit();
-      swapKit = new SwapKit();
+      kit = new AppKit();
 
-      bridgeKit.on('approve', (evt) => {
+      // Events are namespaced with "bridge." in app-kit
+      kit.on('bridge.approve', (evt) => {
         stepSet('b-approve', 'done');
         const hash = evt?.values?.txHash;
         log('ok', `Bridge › allowance granted${hash ? ' — ' + explorerTxLink(hash) : ''}`);
       });
-      bridgeKit.on('burn', (evt) => {
+      kit.on('bridge.burn', (evt) => {
         stepSet('b-burn', 'done');
         const hash = evt?.values?.txHash;
         log('ok', `Bridge › burn confirmed on Arc${hash ? ' — ' + explorerTxLink(hash) : ''}`);
       });
-      bridgeKit.on('fetchAttestation', () => {
+      kit.on('bridge.fetchAttestation', () => {
         stepSet('b-attest', 'done');
         log('inf', 'Bridge › attestation received from Circle');
       });
-      bridgeKit.on('mint', (evt) => {
+      kit.on('bridge.mint', (evt) => {
         stepSet('b-mint', 'done');
         const hash = evt?.values?.txHash;
         log('ok', `Bridge › minted on destination ✓${hash ? ' — ' + hash.slice(0, 10) + '…' : ''}`);
         confetti({ particleCount: 80, spread: 70 });
       });
 
-      log('ok', 'Bridge Kit + Swap Kit initialised with viem adapter');
+      log('ok', 'App Kit initialised with viem adapter');
     } catch (e) {
       log('wrn', 'Kit init failed: ' + (e?.message || e));
       console.error(e);
@@ -344,7 +343,7 @@ async function estimateSwap() {
     return;
   }
 
-  if (!swapKit || !adapter || !kitKeyReady()) {
+  if (!kit || !adapter || !kitKeyReady()) {
     outEl.value = parseFloat(amt).toFixed(6);
     rateEl.textContent = kitKeyReady()
       ? '≈ 1:1 (connect wallet for live quote)'
@@ -355,7 +354,7 @@ async function estimateSwap() {
   try {
     const tokenIn = document.getElementById('tokenIn').value;
     const tokenOut = document.getElementById('tokenOut').value;
-    const est = await swapKit.estimate({
+    const est = await kit.estimateSwap({
       from: { adapter, chain: 'Arc_Testnet' },
       tokenIn,
       tokenOut,
@@ -386,7 +385,7 @@ async function doSwap() {
     log('err', 'Swap needs a Circle API proxy in production. See cloudflare-worker/README.md to deploy the free Cloudflare Worker and set VITE_CIRCLE_PROXY_URL as a repo secret.');
     return;
   }
-  if (!swapKit || !adapter) { log('err', 'Swap Kit not initialised'); return; }
+  if (!kit || !adapter) { log('err', 'App Kit not initialised'); return; }
   if (!kitKeyReady()) { warnKitKey(); return; }
 
   const tokenIn = document.getElementById('tokenIn').value;
@@ -399,7 +398,7 @@ async function doSwap() {
   log('inf', `Swap › initiating ${amt} ${tokenIn} → ${tokenOut}`);
 
   try {
-    const result = await swapKit.swap({
+    const result = await kit.swap({
       from: { adapter, chain: 'Arc_Testnet' },
       tokenIn,
       tokenOut,
@@ -425,7 +424,7 @@ async function doSwap() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BRIDGE — CCTPv2 via bridge-kit
+// BRIDGE — CCTPv2 via app-kit
 // ═══════════════════════════════════════════════════════════════
 async function doBridge() {
   const amt = document.getElementById('bridgeAmt').value;
@@ -433,7 +432,7 @@ async function doBridge() {
 
   if (!amt || parseFloat(amt) <= 0) { log('err', 'Enter an amount to bridge'); return; }
   if (!walletAddress) { log('err', 'Connect wallet first'); return; }
-  if (!bridgeKit || !adapter) { log('err', 'Bridge Kit not initialised'); return; }
+  if (!kit || !adapter) { log('err', 'App Kit not initialised'); return; }
 
   const speed = (bridgeSpeed || 'FAST').toUpperCase();
 
@@ -445,7 +444,7 @@ async function doBridge() {
   log('inf', 'Bridge › wallet may prompt to switch networks during mint — this is expected.');
 
   try {
-    const result = await bridgeKit.bridge({
+    const result = await kit.bridge({
       from: { adapter, chain: 'Arc_Testnet' },
       to: { adapter, chain: dest },
       amount: amt,
@@ -475,6 +474,10 @@ async function doBridge() {
 
 // ═══════════════════════════════════════════════════════════════
 // SEND — direct ERC20 transfer via viem walletClient
+// Decision: kept on raw viem (Option A). app-kit's send API doesn't
+// expose a waitForTransactionReceipt step, which we need to detect
+// on-chain reverts. The raw viem path gives us explicit receipt
+// checking and the per-step UI labels with no loss of functionality.
 // ═══════════════════════════════════════════════════════════════
 async function doSend() {
   const amt = document.getElementById('sendAmt').value;
