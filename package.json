@@ -15,6 +15,8 @@
     "viem": "^2.48.1"
   },
   "devDependencies": {
+    "@rollup/plugin-inject": "^5.0.5",
+    "buffer": "^6.0.3",
     "vite": "^5.0.0"
   }
 }
